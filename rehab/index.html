@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rehab Draw">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F2F4F6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D131A" media="(prefers-color-scheme: dark)">
+<title>Archery Rehab Draw</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&family=Heebo:wght@400;500;700&display=swap">
+<style>
+/* Layout: one narrow column, operated top to bottom: archer -> week status -> draw (target button) -> session cards -> log. */
+:root{
+  --bg:#F2F4F6; --surface:#FFFFFF; --ink:#14202E; --muted:#5A6676; --line:#D8DEE5;
+  --gold:#F2B705; --gold-ink:#1C1500; --shoulder:#1D6BB8; --core:#C9372C; --good:#23805A;
+  --ring-black:#1B1F24; --ring-white:#FFFFFF;
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --f-he:"Heebo","Arial Hebrew","Noto Sans Hebrew",Arial,sans-serif;
+  --scrim:rgba(13,19,26,.45);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D131A; --surface:#151E28; --ink:#E7ECF1; --muted:#95A3B3; --line:#263341;
+  --gold:#F5C21B; --gold-ink:#1C1500; --shoulder:#5CA3EA; --core:#EE6B5F; --good:#4FC08D;
+  --ring-black:#05080B; --ring-white:#DDE3E9; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D131A; --surface:#151E28; --ink:#E7ECF1; --muted:#95A3B3; --line:#263341;
+  --gold:#F5C21B; --gold-ink:#1C1500; --shoulder:#5CA3EA; --core:#EE6B5F; --good:#4FC08D;
+  --ring-black:#05080B; --ring-white:#DDE3E9; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:620px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1,h2{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:.01em}
+h1{font-size:2.3rem;line-height:1;font-weight:800;text-transform:uppercase}
+h2{font-size:1.25rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.lede{color:var(--muted);margin:6px 0 0;max-width:60ch}
+.label{font-size:.72rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px;border-radius:6px}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+select,input[type=text],textarea{font-size:16px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+select{font-weight:600;font-size:17px;min-height:46px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;cursor:pointer;font-weight:600;font-size:.88rem;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.primary:disabled{opacity:.4;cursor:not-allowed}
+.btn.quiet{border-color:transparent;background:transparent;color:var(--muted);padding-inline:8px}
+.addname{display:flex;gap:8px}
+.addname input{flex:1}
+details summary{cursor:pointer;color:var(--muted);font-size:.88rem;font-weight:600}
+.notice{font-size:.85rem;color:var(--muted);border-left:3px solid var(--gold);padding-left:10px}
+
+/* week status */
+.week{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cat{display:flex;flex-direction:column;gap:6px;min-width:0}
+.cat .head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.cat .name{font-weight:700;font-size:.9rem}
+.dots{display:flex;flex-wrap:wrap;gap:5px}
+.dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--c);background:transparent}
+.dot.done{background:var(--c)}
+.dot.now{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--gold)}
+.cat.S{--c:var(--shoulder)} .cat.C{--c:var(--core)}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.stepper button{border:0;background:transparent;width:40px;height:36px;cursor:pointer;font-weight:700}
+.stepper span{min-width:22px;text-align:center}
+@media (max-width:420px){.week{grid-template-columns:1fr}}
+@media (max-width:480px){.done-bar .btn{width:100%;justify-content:center;padding-block:14px;font-size:1rem}.target{--s:170px}.card{padding:12px 10px 12px 12px}.acts{flex-direction:column}}
+html{-webkit-text-size-adjust:100%}button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+
+/* draw */
+.drawzone{display:flex;flex-direction:column;align-items:center;gap:10px;padding-block:6px}
+.target{--s:150px;width:var(--s);height:var(--s);border-radius:50%;border:0;cursor:pointer;position:relative;
+  background:radial-gradient(circle,var(--gold) 0 19%,var(--core) 19.5% 39%,var(--shoulder) 39.5% 59%,var(--ring-black) 59.5% 79%,var(--ring-white) 79.5% 100%);
+  box-shadow:0 0 0 1px var(--line),0 10px 24px -12px rgba(0,0,0,.45);transition:transform .15s ease}
+.target span{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:1.15rem;color:var(--gold-ink);letter-spacing:.06em}
+.target:hover{transform:scale(1.03)}
+.target:active{transform:scale(.97)}
+.target:disabled{filter:grayscale(1);opacity:.45;cursor:not-allowed;transform:none}
+.target.hit{animation:hit .45s ease}
+@keyframes hit{0%{transform:scale(1)}35%{transform:scale(.9)}70%{transform:scale(1.05)}100%{transform:scale(1)}}
+kbd{font-family:var(--f-mono);font-size:.78rem;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;background:var(--surface)}
+.hint{font-size:.85rem;color:var(--muted)}
+
+/* session */
+.group{display:flex;flex-direction:column;gap:8px}
+.group h2{display:flex;align-items:center;gap:8px}
+.group h2::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--c)}
+.group.S{--c:var(--shoulder)} .group.C{--c:var(--core)}
+.card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--c);border-radius:10px;padding:12px 12px 12px 14px;display:flex;gap:10px;align-items:flex-start}
+.card .body{flex:1;min-width:0}
+.card .t{font-weight:700;font-size:1.02rem;line-height:1.3}
+.card .m{color:var(--muted);font-size:.84rem;margin-top:2px}
+.card .note{font-size:.82rem;margin-top:4px}
+.tag{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:2px;border:1px solid var(--line);color:var(--muted)}
+.acts{display:flex;gap:4px;flex-shrink:0}
+.icon{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:transparent;cursor:pointer;display:grid;place-items:center;color:var(--muted)}
+.icon svg{width:18px;height:18px}
+.icon.liked{color:var(--core);border-color:var(--core)}
+.icon.liked svg path{fill:currentColor}
+.done-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.empty{color:var(--muted);text-align:center;font-size:.92rem;padding:8px}
+
+/* log + pool */
+.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.log li{border-top:1px solid var(--line);padding-top:8px;font-size:.86rem}
+.log li:first-child{border-top:0;padding-top:0}
+.log .when{font-weight:600}
+.pool{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.pool li{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line)}
+.pool li:first-child{border-top:0}
+.pool .pn{flex:1;min-width:0;font-size:.9rem}
+.pool .sw{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:600;font-size:.9rem;z-index:20;max-width:calc(100% - 32px)}
+.howto{margin-top:8px;border:0;background:transparent;padding:6px 0;cursor:pointer;font-weight:600;font-size:.86rem;color:var(--ink);text-decoration:underline;text-decoration-color:var(--gold);text-decoration-thickness:2px;text-underline-offset:3px}
+.links{display:flex;gap:16px;flex-wrap:wrap}
+.howto.alt{color:var(--muted);text-decoration-color:var(--line)}
+.ask{margin-top:8px;padding:10px;border-radius:10px;background:var(--bg);display:flex;flex-direction:column;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips .btn{padding-block:10px}
+.dot.paused{border-style:dashed;opacity:.5}
+.dot.off{border-color:var(--line);background:transparent}
+.toggle{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;background:var(--bg)}
+.toggle .name{font-weight:700;font-size:.92rem}
+.switch{flex-shrink:0;width:52px;height:30px;border-radius:999px;border:1px solid var(--line);background:var(--surface);position:relative;cursor:pointer;padding:0}
+.switch span{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--muted);transition:transform .15s ease,background .15s ease}
+.switch[aria-checked="true"]{background:var(--ink);border-color:var(--ink)}
+.switch[aria-checked="true"] span{transform:translateX(22px);background:var(--gold)}
+@media (prefers-reduced-motion:reduce){.switch span{transition:none}}
+.log li.prow{display:flex;align-items:center;gap:10px}
+.pool .pn{border:0;background:transparent;text-align:left;padding:8px 0;cursor:pointer}
+.pool .pn:hover{text-decoration:underline;text-decoration-color:var(--gold)}
+.sheet{position:fixed;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center;background:var(--scrim)}
+.sheet .box{background:var(--surface);color:var(--ink);width:100%;max-width:620px;max-height:88%;overflow:auto;border-radius:18px 18px 0 0;border:1px solid var(--line);border-bottom:0;
+  padding-block:16px calc(20px + env(safe-area-inset-bottom,0px));padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:12px}
+@media (min-width:700px){.sheet{align-items:center}.sheet .box{border-radius:18px;border-bottom:1px solid var(--line)}}
+.sheet .bar{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;border-radius:999px;padding:6px 14px;font-weight:600;font-size:.88rem;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg button[lang="he"]{font-family:var(--f-he)}
+.sheet h3{margin:0;font-family:var(--f-display);font-size:1.6rem;line-height:1.1;text-wrap:balance}
+.sheet .he h3{font-family:var(--f-he);font-weight:700;font-size:1.35rem}
+.sheet dl{margin:0;display:flex;flex-direction:column;gap:10px}
+.sheet dt{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--c,var(--muted))}
+.sheet dd{margin:2px 0 0;font-size:1rem;line-height:1.55}
+.sheet .he dt{letter-spacing:0;font-size:.85rem;font-family:var(--f-he)}
+.sheet .he dd{font-family:var(--f-he);font-size:1.05rem}
+.sheet .S{--c:var(--shoulder)} .sheet .C{--c:var(--core)}
+.prog{display:flex;gap:14px;align-items:center}
+.goalring svg{width:76px;height:76px;display:block}
+.goalinfo{display:flex;flex-direction:column;gap:4px;min-width:0}
+.goalinfo .name{font-weight:700}
+.tag.hit{border-color:var(--gold);background:var(--gold);color:var(--gold-ink)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat{background:var(--bg);border-radius:10px;padding:8px 4px;text-align:center;min-width:0}
+.sv{font-size:1.3rem;line-height:1.2}
+.sl{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+@media (max-width:360px){.stats{grid-template-columns:repeat(2,1fr)}}
+.badges{list-style:none;margin:8px 0 0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.badges li{display:flex;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:10px;min-width:0}
+.badges li svg{width:30px;height:30px;flex-shrink:0;color:var(--line)}
+.badges li .bt{color:var(--muted)}
+.badges li.got{border-color:var(--gold)}
+.badges li.got svg{color:var(--gold)}
+.badges li.got .bt{color:var(--ink)}
+.badges.big{grid-template-columns:1fr}.badges.big li svg{width:44px;height:44px}
+.bt{font-weight:700;font-size:.86rem}.bd{font-size:.76rem;color:var(--muted)}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:420px){.badges{grid-template-columns:1fr}}
+.confirm{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;background:var(--surface);border:1px solid var(--gold);width:100%;max-width:520px;font-size:.92rem}
+footer{color:var(--muted);font-size:.84rem}
+footer p{margin:0 0 6px;max-width:65ch}
+@media (prefers-reduced-motion:reduce){.target,.target.hit{animation:none;transition:none}}
+</style>
+</head>
+<body>
+<div id="app" class="wrap">
+  <header>
+    <div class="label">National team · Shoulder health &amp; core</div>
+    <h1>Rehab Draw</h1>
+    <p class="lede">Pick your name, hit the target, do the exercises. The draw works through the whole list in rotation and favours the ones you like.</p>
+  </header>
+  <noscript><p class="notice">This page needs JavaScript to draw exercises.</p></noscript>
+</div>
+
+<script type="application/json" id="roster-data">["Coach","אורי","איתי","הראל","טוהר","מיכאלה","ניב","רועי","שלי","שמאי"]</script>
+
+<script id="main">
+(function(){
+"use strict";
+/* ---------- Exercise library (Core + Shoulder maintenance/health, from Exercise_Library.xlsx) ---------- */
+const EX=[{"id": "s-hang", "c": "S", "n": "Active dead hang", "sub": "Scapular control", "eq": "Pull-up bar", "pos": "Hanging", "lat": "Bilateral"}, {"id": "s-dep", "c": "S", "n": "Scapula depression on a bench", "sub": "Scapular control", "eq": "Bench", "pos": "Seated/kneeling", "lat": "Bilateral"}, {"id": "s-prot", "c": "S", "n": "Scapula protraction in push-up position", "sub": "Scapular control", "eq": "Bodyweight", "pos": "Prone/plank", "lat": "Bilateral"}, {"id": "s-ret", "c": "S", "n": "Scapula retraction with low pulley", "sub": "Scapular control", "eq": "Cable (low pulley)", "pos": "Standing", "lat": "Bilateral"}, {"id": "s-cer", "c": "S", "n": "Cable shoulder lateral rotation, elbow at 90°", "sub": "Rotator cuff", "eq": "Cable", "pos": "Standing", "lat": "Unilateral", "note": "Elbow fixed at 90°"}, {"id": "s-der", "c": "S", "n": "Shoulder lateral rotation with dumbbell, arm supported on knee", "sub": "Rotator cuff", "eq": "Dumbbell", "pos": "Seated", "lat": "Unilateral", "note": "Arm supported on knee"}, {"id": "s-swim", "c": "S", "n": "Supine swimmers/angels", "sub": "Lower trap", "eq": "Bodyweight", "pos": "Supine", "lat": "Bilateral"}, {"id": "s-t", "c": "S", "n": "Bent-over shoulder ‘T’", "sub": "Lower trap", "eq": "Dumbbell/band", "pos": "Bent-over standing", "lat": "Bilateral"}, {"id": "s-y", "c": "S", "n": "Bent-over shoulder ‘Y’", "sub": "Lower trap", "eq": "Dumbbell/band", "pos": "Bent-over standing", "lat": "Bilateral"}, {"id": "c-inch", "c": "C", "n": "Inchworm walks", "sub": "Anti-extension", "eq": "Bodyweight", "pos": "Standing to plank walkout", "lat": "Bilateral"}, {"id": "c-hollow", "c": "C", "n": "Hollow hold", "sub": "Anti-extension", "eq": "Bodyweight", "pos": "Supine", "lat": "Bilateral"}, {"id": "c-hroll", "c": "C", "n": "Hollow hold and roll", "sub": "Anti-extension", "eq": "Bodyweight", "pos": "Supine (rocking)", "lat": "Bilateral"}, {"id": "c-ball", "c": "C", "n": "Physioball roll-outs", "sub": "Anti-extension", "eq": "Physioball (stability ball)", "pos": "Kneeling, forearms on ball", "lat": "Bilateral"}, {"id": "c-touch", "c": "C", "n": "Shoulder touch", "sub": "Anti-rotation", "eq": "Bodyweight", "pos": "High plank", "lat": "Alternating"}, {"id": "c-super", "c": "C", "n": "Superman arm and leg raise", "sub": "Anti-rotation", "eq": "Bodyweight", "pos": "Push-up/high plank position", "lat": "Contralateral"}, {"id": "c-pallof", "c": "C", "n": "Pallof cable anti-rotation", "sub": "Anti-rotation", "eq": "Cable", "pos": "Standing", "lat": "Each side"}, {"id": "c-sarot", "c": "C", "n": "Straight arm cable rotations", "sub": "Rotational", "eq": "Cable", "pos": "Standing", "lat": "Each side"}, {"id": "c-chop", "c": "C", "n": "Half-kneeling wood chops", "sub": "Rotational", "eq": "Cable/band", "pos": "Half-kneeling", "lat": "Each side"}, {"id": "c-spk", "c": "C", "n": "Side planks on knee", "sub": "Anti-lateral flexion", "eq": "Bodyweight", "pos": "Side-lying, knees bent", "lat": "Each side"}, {"id": "c-sps", "c": "C", "n": "Straight leg side planks", "sub": "Anti-lateral flexion", "eq": "Bodyweight", "pos": "Side-lying, legs extended", "lat": "Each side"}, {"id": "c-lmtw", "c": "C", "n": "Landmine twists (fixed feet)", "sub": "Rotational", "eq": "Landmine attachment/barbell", "pos": "Standing, feet fixed", "lat": "Each side"}, {"id": "c-bext", "c": "C", "n": "Prone back extensions", "sub": "Extensor", "eq": "Bodyweight (floor/bench)", "pos": "Prone", "lat": "Bilateral"}, {"id": "c-cext", "c": "C", "n": "Contralateral prone back extension, alternating", "sub": "Extensor", "eq": "Bodyweight", "pos": "Prone", "lat": "Contralateral, alternating"}, {"id": "s-wall", "c": "S", "n": "Wall slides", "sub": "Scapular control", "eq": "Wall (bodyweight)", "pos": "Standing, back against wall", "lat": "Bilateral", "note": "Arms slide up and down the wall"}, {"id": "c-lm180", "c": "C", "n": "Landmine 180s (pivoting feet)", "sub": "Rotational", "eq": "Landmine attachment/barbell", "pos": "Standing, feet pivoting", "lat": "Alternating"}, {"id": "s-waiter", "c": "S", "n": "Waiter plate around the world", "sub": "Scapular control", "eq": "Weight plate (small)", "pos": "Standing", "lat": "Each side", "note": "Plate held in waiter position; circled under the armpit and overhead"}, {"id": "c-suit", "c": "C", "n": "Suitcase carry (1 arm)", "sub": "Loaded carry", "eq": "Dumbbell/kettlebell", "pos": "Standing, walking", "lat": "Each side"}, {"id": "c-farm", "c": "C", "n": "Farmer walk", "sub": "Loaded carry", "eq": "Dumbbells/kettlebells/trap bar", "pos": "Standing, walking", "lat": "Bilateral"}, {"id": "s-ohw", "c": "S", "n": "1 DB overhead walk", "sub": "Scapular control", "eq": "Dumbbell", "pos": "Standing, walking", "lat": "Each side"}, {"id": "s-ber", "c": "S", "n": "Band shoulder lateral rotation, elbow at 90°", "sub": "Rotator cuff", "eq": "Resistance band", "pos": "Standing", "lat": "Each side", "note": "Elbow fixed at 90°"}, {"id": "s-bt", "c": "S", "n": "Band bent-over shoulder ‘T’", "sub": "Lower trap", "eq": "Resistance band", "pos": "Bent-over standing", "lat": "Bilateral"}, {"id": "s-by", "c": "S", "n": "Band bent-over shoulder ‘Y’", "sub": "Lower trap", "eq": "Resistance band", "pos": "Bent-over standing", "lat": "Bilateral"}, {"id": "s-bier", "c": "S", "n": "Band shoulder lateral rotation, both arms, elbows at 90°", "sub": "Rotator cuff", "eq": "Light resistance band (no anchor)", "pos": "Standing", "lat": "Bilateral", "note": "Elbows at the sides, both arms at once"}, {"id": "s-er90", "c": "S", "n": "Shoulder lateral rotation at 90° (bottle or band)", "sub": "Rotator cuff", "eq": "Water bottle or similar, or light band under the foot", "pos": "Standing or seated, upper arm at shoulder height", "lat": "Each side", "note": "Upper arm parallel to the floor, elbow at 90°"}, {"id": "c-bpallof", "c": "C", "n": "Band Pallof press", "sub": "Anti-rotation", "eq": "Resistance band", "pos": "Standing/half-kneeling", "lat": "Each side"}, {"id": "c-pike", "c": "C", "n": "Sliders pike (sliders, barefoot or socks)", "sub": "Anti-extension", "eq": "Sliders, or bodyweight on low-friction surface (barefoot/socks)", "pos": "High plank, barefoot or socks", "lat": "Bilateral", "note": "Hands stay fixed; feet slide toward the hands into a pike (hips high, inverted V)"}, {"id": "c-rpl", "c": "C", "n": "Reverse plank (hip lift)", "sub": "Extensor", "eq": "Bodyweight", "pos": "Supported on hands, face up, legs extended", "lat": "Bilateral"}, {"id": "c-rpll", "c": "C", "n": "Reverse plank with leg raise", "sub": "Extensor", "eq": "Bodyweight", "pos": "Supported on hands, face up, legs extended", "lat": "Alternating"}, {"id": "c-whk", "c": "C", "n": "Ab wheel rollout on knees (modified)", "sub": "Anti-extension", "eq": "Ab wheel", "pos": "Kneeling, hands on wheel", "lat": "Bilateral"}, {"id": "c-whf", "c": "C", "n": "Ab wheel rollout, straight legs (full)", "sub": "Anti-extension", "eq": "Ab wheel", "pos": "Standing on toes, hips hinged, hands on wheel", "lat": "Bilateral"}, {"id": "c-drag", "c": "C", "n": "Plank drag (hand-walk, sliders or socks)", "sub": "Anti-rotation", "eq": "Sliders (preferred), or socks on low-friction surface", "pos": "High plank, feet on sliders or in socks", "lat": "Alternating hands", "note": "Hands walk forward while the feet are dragged along the floor; sliders preferred"}, {"id": "c-lsit", "c": "C", "n": "Sliders L-sit bridge", "sub": "Extensor", "eq": "Sliders", "pos": "Supported on straight arms, face up, hips lifted, feet on sliders", "lat": "Bilateral", "note": "Knees straight throughout; hips move from 90° (L position) to straight as the feet slide"}];
+const DESC={"s-hang": {"en": {"s": "Hang from a pull-up bar, hands shoulder-width or slightly wider, arms straight.", "m": "Pull the shoulder blades down and slightly back so the body rises a few centimetres without bending the elbows. Hold the position.", "c": "Ribs down, legs together, trunk lightly braced. Think “shoulders away from the ears”.", "x": "Bending the elbows, swinging, or letting the shoulders creep up to the ears during the hold."}, "he": {"n": "תלייה אקטיבית על מתח", "s": "היתלו על מוט מתח, אחיזה ברוחב הכתפיים או מעט רחבה יותר, ידיים ישרות.", "m": "משכו את השכמות למטה ומעט לאחור כך שהגוף מתרומם כמה סנטימטרים בלי לכופף מרפקים. החזיקו את המנח.", "c": "צלעות למטה, רגליים צמודות, בטן מופעלת קלות. חשבו „כתפיים רחוק מהאוזניים”.", "x": "כיפוף מרפקים, התנדנדות, או עליית הכתפיים לכיוון האוזניים במהלך ההחזקה."}}, "s-dep": {"en": {"s": "Sit on a bench or a sturdy chair with hands beside the hips, fingers forward, arms straight. Hips just off the edge or in light contact with the seat.", "m": "Without bending the elbows, push the seat down so the shoulders move away from the ears and the body rises slightly. Lower slowly until the shoulders rise toward the ears, then repeat.", "c": "The movement comes only from the shoulder blades. Keep the chest tall.", "x": "Bending the elbows (this turns it into a dip) or rolling the shoulders forward."}, "he": {"n": "דיכוי שכמות על ספסל", "s": "שבו על ספסל או על כיסא יציב, כפות הידיים ליד הירכיים, אצבעות קדימה, ידיים ישרות. האגן ממש בקצה המושב או במגע קל איתו.", "m": "בלי לכופף מרפקים, דחפו את המושב למטה כך שהכתפיים מתרחקות מהאוזניים והגוף מתרומם מעט. רדו לאט עד שהכתפיים עולות לכיוון האוזניים, וחזרו.", "c": "התנועה מגיעה רק מהשכמות. חזה גבוה.", "x": "כיפוף מרפקים (זה הופך את התרגיל למקבילים) או גלגול הכתפיים קדימה."}}, "s-prot": {"en": {"s": "High plank (push-up position), hands under the shoulders, body in a straight line.", "m": "Let the chest sink slightly so the shoulder blades come together, then push the floor away so the upper back rounds slightly and the blades spread apart. Elbows stay straight throughout.", "c": "Slow and controlled, full range at both ends. Hips level, trunk braced.", "x": "Bending the elbows, sagging hips, or moving the head instead of the shoulder blades."}, "he": {"n": "פרוטרקציה של שכמות בתנוחת שכיבת סמיכה", "s": "פלאנק גבוה (תנוחת שכיבת סמיכה), כפות הידיים מתחת לכתפיים, הגוף בקו ישר.", "m": "אפשרו לחזה לשקוע מעט כך שהשכמות מתקרבות, ואז דחפו את הרצפה כך שהגב העליון מתעגל מעט והשכמות מתרחקות זו מזו. המרפקים ישרים לאורך כל התנועה.", "c": "לאט ובשליטה, טווח מלא בשני הקצוות. אגן ישר, בטן מופעלת.", "x": "כיפוף מרפקים, שקיעת האגן, או הזזת הראש במקום השכמות."}}, "s-ret": {"en": {"s": "Face a low pulley and hold the handle(s) with straight arms in front of you. Step back so the cable is under tension. Stand tall.", "m": "Squeeze the shoulder blades back and together without bending the elbows. Hold 1–2 s, then let them slide forward slowly.", "c": "Only the shoulder blades move; the arms stay passive. Shoulders down.", "x": "Pulling with the arms (rowing), shrugging, or leaning the torso back."}, "he": {"n": "קירוב שכמות (רטרקציה) בפולי תחתון", "s": "עמדו מול פולי תחתון ואחזו בידית או בידיות בידיים ישרות לפנים. צעד אחורה כך שהכבל מתוח. עמידה זקופה.", "m": "קרבו את השכמות לאחור ואחת אל השנייה בלי לכופף מרפקים. החזיקו 1–2 שניות, ואז אפשרו להן לחזור קדימה לאט.", "c": "רק השכמות זזות; הידיים פסיביות. כתפיים למטה.", "x": "משיכה עם הידיים (חתירה), הרמת כתפיים, או הטיית הגו לאחור."}}, "s-cer": {"en": {"s": "Stand side-on to a cable set at elbow height and hold the handle in the hand farther from the machine. Elbow bent to 90° and held against your side (a small rolled towel between elbow and body helps).", "m": "Rotate the forearm outward, away from the body, keeping the elbow at 90° and at your side. Return slowly.", "c": "Movement comes from the shoulder only; the forearm stays horizontal. Slow return, 2–3 s.", "x": "The elbow drifting away from the body, twisting the trunk, or bending the wrist to gain range."}, "he": {"n": "סיבוב חיצוני של הכתף בכבל, מרפק ב-90°", "s": "עמדו בצד למכונת הכבל, הכבל בגובה המרפק, ואחזו בידית ביד הרחוקה מהמכונה. המרפק מכופף ל-90° וצמוד לגוף (מגבת קטנה מגולגלת בין המרפק לגוף עוזרת).", "m": "סובבו את האמה החוצה, הרחק מהגוף, כשהמרפק נשאר ב-90° וצמוד לגוף. חזרו לאט.", "c": "התנועה רק מהכתף; האמה נשארת אופקית. חזרה איטית, 2–3 שניות.", "x": "התרחקות המרפק מהגוף, סיבוב הגו, או כיפוף שורש כף היד כדי להגדיל טווח."}}, "s-der": {"en": {"s": "Sit with one foot raised on a bench and rest the elbow of the working arm on that knee, upper arm close to shoulder height, elbow bent to 90°, forearm pointing forward with the dumbbell.", "m": "Rotate the forearm upward until it points to the ceiling, keeping the elbow on the knee. Lower slowly.", "c": "Elbow stays at 90° and in contact with the knee. Light load, full control.", "x": "Lifting the elbow off the knee, arching the back, or shrugging."}, "he": {"n": "סיבוב חיצוני של הכתף עם משקולת, יד נתמכת על הברך", "s": "שבו עם רגל אחת מורמת על ספסל והניחו את מרפק היד העובדת על הברך. הזרוע קרובה לגובה הכתף, המרפק ב-90°, והאמה עם המשקולת מכוונת קדימה.", "m": "סובבו את האמה למעלה עד שהיא מכוונת לתקרה, כשהמרפק נשאר על הברך. הורידו לאט.", "c": "המרפק נשאר ב-90° ובמגע עם הברך. משקל קל, שליטה מלאה.", "x": "הרמת המרפק מהברך, קשת בגב, או הרמת הכתף."}}, "s-swim": {"en": {"s": "Lie on your back, knees bent, feet flat. Arms on the floor in a goalpost position: elbows at shoulder height, bent to 90°.", "m": "Slide the arms overhead along the floor as far as you can while the backs of the hands, the elbows and the lower back stay on the floor. Slide back down, drawing the elbows toward the hips.", "c": "Ribs down, lower back flat. Range is set by keeping contact, not by forcing it.", "x": "Arching the lower back, lifting the hands or elbows off the floor, or shrugging."}, "he": {"n": "מלאכים בשכיבה על הגב", "s": "שכבו על הגב, ברכיים כפופות, כפות רגליים על הרצפה. הידיים על הרצפה בצורת עמוד שער: מרפקים בגובה הכתפיים, כפופים ל-90°.", "m": "החליקו את הידיים מעל הראש לאורך הרצפה ככל שניתן, כשגב כפות הידיים, המרפקים והגב התחתון נשארים על הרצפה. החליקו חזרה למטה תוך משיכת המרפקים לכיוון האגן.", "c": "צלעות למטה, גב תחתון צמוד. הטווח נקבע לפי שמירת המגע, לא בכוח.", "x": "קשת בגב התחתון, הרמת כפות הידיים או המרפקים מהרצפה, או הרמת כתפיים."}}, "s-t": {"en": {"s": "Hinge at the hips with a flat back, torso close to parallel to the floor, knees slightly bent. Arms hang straight down with light dumbbells or a band, thumbs forward.", "m": "Raise the arms out to the sides to shoulder height to form a “T”, squeezing the shoulder blades together. Lower slowly.", "c": "Start the movement from the shoulder blades. Arms straight, neck in line with the spine.", "x": "Rounding the back, shrugging, or using momentum or a heavy load."}, "he": {"n": "T בהטיה קדימה", "s": "התכופפו מהאגן עם גב ישר, הגו כמעט מקביל לרצפה, ברכיים מעט כפופות. הידיים תלויות ישר למטה עם משקולות קלות או גומייה, אגודלים קדימה.", "m": "הרימו את הידיים לצדדים עד גובה הכתפיים ליצירת „T”, תוך קירוב השכמות. הורידו לאט.", "c": "התנועה מתחילה מהשכמות. ידיים ישרות, צוואר בהמשך הגב.", "x": "עיגול הגב, הרמת כתפיים, או תנופה ומשקל כבד."}}, "s-y": {"en": {"s": "Same position as the “T”: hip hinge, flat back, arms hanging with light dumbbells or a band.", "m": "Raise the arms forward and up at about 45° outside the head to form a “Y”, thumbs up, until the arms are in line with the torso. Lower slowly.", "c": "Draw the shoulder blades down and back before lifting. Light load.", "x": "Arching the lower back, shrugging (the upper trapezius takes over), or bending the elbows."}, "he": {"n": "Y בהטיה קדימה", "s": "אותו מנח כמו ב-T: הטיה מהאגן, גב ישר, ידיים תלויות עם משקולות קלות או גומייה.", "m": "הרימו את הידיים קדימה ולמעלה בזווית של כ-45° מחוץ לקו הראש ליצירת „Y”, אגודלים למעלה, עד שהידיים בקו הגו. הורידו לאט.", "c": "משכו את השכמות למטה ולאחור לפני ההרמה. משקל קל.", "x": "קשת בגב התחתון, הרמת כתפיים (הטרפז העליון משתלט), או כיפוף מרפקים."}}, "c-inch": {"en": {"s": "Stand tall, feet hip-width apart.", "m": "Hinge forward and place the hands on the floor (bend the knees as needed). Walk the hands out to a high plank, pause, then walk the feet toward the hands and stand up.", "c": "In the plank: hips level, ribs down, glutes on.", "x": "Hips sagging as the hands walk out, or walking out farther than you can control."}, "he": {"n": "הליכת תולעת (אינצ'וורם)", "s": "עמידה זקופה, רגליים ברוחב האגן.", "m": "התכופפו קדימה והניחו את כפות הידיים על הרצפה (כופפו ברכיים לפי הצורך). התקדמו עם הידיים עד פלאנק גבוה, עצרו רגע, ואז התקדמו עם הרגליים לכיוון הידיים וקומו.", "c": "בפלאנק: אגן ישר, צלעות למטה, ישבן מופעל.", "x": "שקיעת האגן כשהידיים מתקדמות, או יציאה רחוק יותר ממה שאפשר לשלוט בו."}}, "c-hollow": {"en": {"s": "Lie on your back, arms overhead, legs straight.", "m": "Press the lower back into the floor and lift the shoulders and legs a few centimetres off the floor into a shallow banana shape. Hold.", "c": "The lower back stays in contact. To make it easier, bend the knees or bring the arms alongside the body.", "x": "The lower back lifting off the floor, holding your breath, or straining the neck (keep the chin slightly tucked)."}, "he": {"n": "החזקת הולו (גוף קעור)", "s": "שכבו על הגב, ידיים מעל הראש, רגליים ישרות.", "m": "הצמידו את הגב התחתון לרצפה והרימו כתפיים ורגליים כמה סנטימטרים מהרצפה לצורת בננה רדודה. החזיקו.", "c": "הגב התחתון נשאר צמוד. להקלה: כופפו ברכיים או הביאו את הידיים לצד הגוף.", "x": "התרוממות הגב התחתון מהרצפה, עצירת נשימה, או מתיחת הצוואר (סנטר מעט פנימה)."}}, "c-hroll": {"en": {"s": "Start in the hollow hold position.", "m": "Keep the shape rigid and rock gently forward and back, from the upper back to the lower back and back again.", "c": "The shape does not change; the whole body moves as one unit. Breathe steadily.", "x": "Breaking the shape (legs dropping, head moving) or creating momentum with the legs."}, "he": {"n": "החזקת הולו עם נדנוד", "s": "התחילו בתנוחת החזקת הולו.", "m": "שמרו על צורת הגוף נוקשה והתנדנדו בעדינות קדימה ואחורה, מהגב העליון לגב התחתון וחזרה.", "c": "צורת הגוף לא משתנה; כל הגוף זז כיחידה אחת. נשימה רגועה.", "x": "שבירת הצורה (רגליים נופלות, ראש זז) או יצירת תנופה מהרגליים."}}, "c-ball": {"en": {"s": "Kneel facing a stability ball with the forearms on top of the ball, body straight from knees to head.", "m": "Roll the ball forward by opening the shoulders and hips together, as far as you can without the lower back arching. Pull back with the forearms to the start.", "c": "Trunk braced, glutes squeezed, ribs down.", "x": "The lower back sagging, the hips staying back (bending at the hips), or going past the range you control."}, "he": {"n": "גלגול כדור פיזיו קדימה (רול-אאוט)", "s": "כרעו מול כדור פיזיו עם האמות על הכדור, הגוף בקו ישר מהברכיים עד הראש.", "m": "גלגלו את הכדור קדימה תוך פתיחה של הכתפיים והאגן יחד, ככל שאפשר בלי קשת בגב התחתון. משכו עם האמות חזרה למנח ההתחלה.", "c": "בטן מופעלת, ישבן מכווץ, צלעות למטה.", "x": "שקיעת הגב התחתון, אגן שנשאר מאחור (כיפוף באגן), או יציאה מעבר לטווח שבשליטה."}}, "c-touch": {"en": {"s": "High plank, hands under the shoulders, feet slightly wider than hip-width.", "m": "Lift one hand and touch the opposite shoulder, put it back down, then switch sides.", "c": "Hips stay level and still; imagine a glass of water on your lower back. Wider feet make it easier.", "x": "Hips rocking side to side, or rushing."}, "he": {"n": "נגיעות בכתף בפלאנק", "s": "פלאנק גבוה, כפות הידיים מתחת לכתפיים, רגליים מעט רחבות מרוחב האגן.", "m": "הרימו יד אחת וגעו בכתף הנגדית, החזירו לרצפה והחליפו צד.", "c": "האגן נשאר ישר ויציב; דמיינו כוס מים על הגב התחתון. רגליים רחבות יותר מקלות.", "x": "נדנוד האגן מצד לצד, או ביצוע מהיר."}}, "c-super": {"en": {"s": "High plank (push-up position), hands under the shoulders, feet hip-width or slightly wider.", "m": "Lift one arm forward and the opposite leg back until both are in line with the body, hold 2–3 s, lower and switch.", "c": "Hips level and square to the floor, trunk braced, reach long. Wider feet make it easier.", "x": "Hips rotating or sagging, lifting the leg above the body line, or shifting the weight to one side."}, "he": {"n": "סופרמן בפלאנק: הרמת יד ורגל נגדית", "s": "פלאנק גבוה (תנוחת שכיבת סמיכה), כפות הידיים מתחת לכתפיים, רגליים ברוחב האגן או מעט רחב יותר.", "m": "הרימו יד אחת קדימה ואת הרגל הנגדית אחורה עד שהן בקו הגוף, החזיקו 2–3 שניות, הורידו והחליפו.", "c": "אגן ישר ומקביל לרצפה, בטן מופעלת, להאריך. רגליים רחבות יותר מקלות.", "x": "סיבוב או שקיעה של האגן, הרמת הרגל מעל קו הגוף, או העברת משקל לצד אחד."}}, "c-pallof": {"en": {"s": "Stand side-on to a cable at chest height. Hold the handle with both hands against the sternum and step away so there is tension. Feet hip-width, knees soft.", "m": "Press the handle straight out in front of the chest, hold 2–3 s while resisting the pull, then bring it back. Do both sides.", "c": "The trunk stays square to the front. Tension rises as the arms straighten.", "x": "Rotating toward the cable, leaning away from it, or shrugging."}, "he": {"n": "פאלוף בכבל (התנגדות לסיבוב)", "s": "עמדו בצד לכבל בגובה החזה. אחזו בידית בשתי הידיים צמוד לעצם החזה וזוזו הצידה כך שיש מתח. רגליים ברוחב האגן, ברכיים רכות.", "m": "דחפו את הידית ישר קדימה מול החזה, החזיקו 2–3 שניות תוך התנגדות למשיכה, והחזירו. בצעו בשני הצדדים.", "c": "הגו נשאר ישר מול הכיוון הקדמי. המתח גדל כשהידיים מתיישרות.", "x": "סיבוב לכיוון הכבל, הטיה הרחק ממנו, או הרמת כתפיים."}}, "c-sarot": {"en": {"s": "Stand side-on to a cable at chest height and hold the handle with both hands, arms straight in front of the chest. Feet shoulder-width.", "m": "Rotate the trunk away from the cable with the arms staying straight and in front of the chest, then return slowly. Do both sides.", "c": "Rotation comes from the hips and trunk together; the hands stay in line with the sternum. Control the return.", "x": "Bending the elbows, pulling with the arms, or letting the cable pull you back."}, "he": {"n": "סיבובים בכבל עם ידיים ישרות", "s": "עמדו בצד לכבל בגובה החזה ואחזו בידית בשתי הידיים, ידיים ישרות מול החזה. רגליים ברוחב הכתפיים.", "m": "סובבו את הגו הרחק מהכבל כשהידיים נשארות ישרות ומול החזה, וחזרו לאט. בצעו בשני הצדדים.", "c": "הסיבוב מגיע מהאגן והגו יחד; הידיים בקו עצם החזה. שליטה בחזרה.", "x": "כיפוף מרפקים, משיכה עם הידיים, או לתת לכבל למשוך אתכם חזרה."}}, "c-chop": {"en": {"s": "Half-kneeling (one knee down, other foot forward, both at 90°), side-on to a high cable or a band anchored high, with the knee nearer the anchor on the floor. Hold the handle with both hands above the shoulder nearer the anchor.", "m": "Pull the handle diagonally down and across the body to the opposite hip, rotating the trunk, then return under control. Do both sides.", "c": "Tall posture, glute of the down leg squeezed, hips stay facing forward.", "x": "Losing balance or shifting the hips, arching the back, or pulling with the arms only."}, "he": {"n": "חטיבת עצים בכריעה על ברך אחת", "s": "כריעה על ברך אחת (ברך אחת על הרצפה, כף הרגל השנייה קדימה, שתיהן ב-90°), בצד לכבל גבוה או לגומייה מעוגנת גבוה, כשהברך הקרובה לעיגון על הרצפה. אחזו בידית בשתי הידיים מעל הכתף הקרובה לעיגון.", "m": "משכו את הידית באלכסון למטה ולרוחב הגוף עד לירך הנגדית תוך סיבוב הגו, וחזרו בשליטה. בצעו בשני הצדדים.", "c": "יציבה זקופה, ישבן של הרגל שעל הרצפה מכווץ, האגן נשאר מכוון קדימה.", "x": "איבוד שיווי משקל או תזוזת האגן, קשת בגב, או משיכה רק עם הידיים."}}, "c-spk": {"en": {"s": "Lie on your side with the forearm under the shoulder and the knees bent to about 90°; hips, knees and shoulders in line.", "m": "Lift the hips until the body is straight from knees to head, and hold. Do both sides.", "c": "Push the floor away with the forearm. Hips forward, not piking back.", "x": "Hips sagging, the shoulder collapsing toward the ear, or rolling forward or back."}, "he": {"n": "פלאנק צד על הברכיים", "s": "שכבו על הצד, אמה מתחת לכתף, ברכיים כפופות לכ-90°; אגן, ברכיים וכתפיים בקו אחד.", "m": "הרימו את האגן עד שהגוף ישר מהברכיים עד הראש, והחזיקו. בצעו בשני הצדדים.", "c": "דחפו את הרצפה עם האמה. אגן קדימה, לא בורח אחורה.", "x": "שקיעת האגן, קריסת הכתף לכיוון האוזן, או התגלגלות קדימה או אחורה."}}, "c-sps": {"en": {"s": "Lie on your side with the forearm under the shoulder and the legs straight, feet stacked (easier: top foot in front of the bottom one).", "m": "Lift the hips until the body is straight from ankles to head, and hold. Do both sides.", "c": "Straight line, hips forward, push the floor away with the forearm.", "x": "Hips sagging, hips drifting back, or the shoulder collapsing."}, "he": {"n": "פלאנק צד עם רגליים ישרות", "s": "שכבו על הצד, אמה מתחת לכתף, רגליים ישרות וכפות הרגליים זו על זו (להקלה: כף הרגל העליונה לפני התחתונה).", "m": "הרימו את האגן עד שהגוף ישר מהקרסוליים עד הראש, והחזיקו. בצעו בשני הצדדים.", "c": "קו ישר, אגן קדימה, דחיפת הרצפה עם האמה.", "x": "שקיעת האגן, אגן שבורח אחורה, או קריסת הכתף."}}, "c-lmtw": {"en": {"s": "Stand facing the landmine, feet shoulder-width, holding the end of the bar with both hands at chest height, arms almost straight.", "m": "Keeping the feet fixed and the arms long, move the bar in an arc toward one hip by rotating the trunk, then across to the other side.", "c": "Hips and feet stay still; the rotation comes from the trunk, under control. Trunk braced throughout.", "x": "Pivoting the feet, bending the arms to lift the bar, or letting the weight pull you past the range you control."}, "he": {"n": "סיבובי לנדמיין (רגליים קבועות)", "s": "עמדו מול הלנדמיין, רגליים ברוחב הכתפיים, אחזו בקצה המוט בשתי הידיים בגובה החזה, ידיים כמעט ישרות.", "m": "כפות הרגליים נשארות קבועות והידיים ארוכות; הובילו את המוט בקשת לכיוון ירך אחת באמצעות סיבוב הגו, ואז לצד השני.", "c": "האגן וכפות הרגליים נשארים במקום; הסיבוב מהגו ובשליטה. בטן מופעלת לאורך כל התנועה.", "x": "סיבוב כפות הרגליים, כיפוף הידיים כדי להרים את המוט, או לתת למשקל למשוך אתכם מעבר לטווח שבשליטה."}}, "c-bext": {"en": {"s": "Lie face down, hands lightly by the temples or arms by your sides, legs straight with the feet on the floor.", "m": "Lift the chest a few centimetres by extending the upper back, hold 1–2 s, and lower slowly.", "c": "Glutes on, neck in line, lift from the upper back, small range.", "x": "Throwing the head back, pushing up with the hands, or forcing a big arch in the lower back."}, "he": {"n": "הרמות גו בשכיבה על הבטן", "s": "שכבו על הבטן, הידיים קלות ליד הרקות או לאורך הגוף, רגליים ישרות וכפות הרגליים על הרצפה.", "m": "הרימו את החזה כמה סנטימטרים ביישור הגב העליון, החזיקו 1–2 שניות, ורדו לאט.", "c": "ישבן מופעל, צוואר בהמשך הגב, ההרמה מהגב העליון, טווח קטן.", "x": "זריקת הראש לאחור, דחיפה עם הידיים, או קשת גדולה בגב התחתון."}}, "c-cext": {"en": {"s": "Lie face down, arms reaching overhead, legs straight, forehead on the floor or just above it.", "m": "Lift one arm and the opposite leg a few centimetres, hold 2–3 s, lower, then switch.", "c": "Reach long rather than lifting high. Glutes on, neck in line with the spine.", "x": "Excessive arching of the lower back, twisting the hips, or lifting the head high."}, "he": {"n": "הרמת יד ורגל נגדית בשכיבה על הבטן", "s": "שכבו על הבטן, ידיים מושטות מעל הראש, רגליים ישרות, המצח על הרצפה או מעט מעליה.", "m": "הרימו יד אחת ואת הרגל הנגדית כמה סנטימטרים, החזיקו 2–3 שניות, הורידו והחליפו.", "c": "להאריך ולא להרים גבוה. ישבן מופעל, צוואר בהמשך הגב.", "x": "קשת מוגזמת בגב התחתון, סיבוב האגן, או הרמת הראש גבוה."}}, "s-wall": {"en": {"s": "Stand with your back against a wall, feet a small step forward, knees soft. Arms on the wall in a goalpost position: elbows at shoulder height, bent to 90°.", "m": "Slide the arms up the wall as far as you can while the forearms and backs of the hands stay in contact, then slide down, drawing the elbows toward the hips.", "c": "Ribs down, lower back close to the wall. Let the shoulder blades rotate upward as the arms rise.", "x": "Arching the lower back to reach higher, shrugging, or losing contact with the wall."}, "he": {"n": "החלקות על הקיר", "s": "עמדו עם הגב צמוד לקיר, כפות הרגליים צעד קטן קדימה, ברכיים רכות. הידיים על הקיר בצורת עמוד שער: מרפקים בגובה הכתפיים, כפופים ל-90°.", "m": "החליקו את הידיים למעלה על הקיר ככל שניתן כשהאמות וגב כפות הידיים נשארים במגע, ואז החליקו למטה תוך משיכת המרפקים לכיוון האגן.", "c": "צלעות למטה, גב תחתון קרוב לקיר. אפשרו לשכמות להסתובב למעלה כשהידיים עולות.", "x": "קשת בגב התחתון כדי להגיע גבוה יותר, הרמת כתפיים, או איבוד מגע עם הקיר."}}, "c-lm180": {"en": {"s": "Stand facing the landmine, feet shoulder-width, holding the end of the bar with both hands at chest height.", "m": "Move the bar in an arc from one hip to the other, pivoting the back foot (as in a throw) so the hips turn with the trunk. Move with intent, but control the bar at each end.", "c": "The hips drive the rotation; the arms stay long; stop the bar under control at the hip.", "x": "Doing the work with the arms, losing balance, or letting the bar crash at the end of the arc."}, "he": {"n": "לנדמיין 180 (סיבוב כפות הרגליים)", "s": "עמדו מול הלנדמיין, רגליים ברוחב הכתפיים, אחזו בקצה המוט בשתי הידיים בגובה החזה.", "m": "הובילו את המוט בקשת מירך אחת לירך השנייה, תוך סיבוב כף הרגל האחורית (כמו בזריקה) כך שהאגן מסתובב יחד עם הגו. תנועה נמרצת, אבל עם שליטה בכל קצה.", "c": "האגן מוביל את הסיבוב; הידיים ארוכות; עצירת המוט בשליטה ליד הירך.", "x": "עבודה בעיקר עם הידיים, איבוד שיווי משקל, או נחיתה חדה של המוט בסוף הקשת."}}, "s-waiter": {"en": {"s": "Stand tall with a small plate resting flat on the palm in the waiter position: elbow bent, palm up, plate level at shoulder height.", "m": "Keeping the plate level, circle it inward under the armpit, then behind and over the head, and back to the front. Reverse the direction for the next set. Do both sides.", "c": "The plate stays level throughout. Slow and controlled, through the full range you can control. Trunk still.", "x": "Tilting the plate, leaning or twisting the trunk to make room, or rushing through the end range."}, "he": {"n": "מגש מלצר סביב העולם (צלחת משקל)", "s": "עמדו זקוף כשצלחת משקל קטנה מונחת שטוחה על כף היד בתנוחת מלצר: מרפק כפוף, כף יד כלפי מעלה, הצלחת ישרה בגובה הכתף.", "m": "תוך שמירה על הצלחת ישרה, סובבו אותה פנימה מתחת לבית השחי, אחר כך מאחורי הראש ומעליו, וחזרה לפנים. בסט הבא החליפו כיוון. בצעו בשני הצדדים.", "c": "הצלחת נשארת ישרה לאורך כל התנועה. לאט ובשליטה, בטווח המלא שבשליטה. הגו יציב.", "x": "הטיית הצלחת, הטיה או סיבוב של הגו כדי לפנות מקום, או מעבר מהיר בקצות הטווח."}}, "c-suit": {"en": {"s": "Hold one dumbbell or kettlebell at your side, arm straight, and stand tall.", "m": "Walk at a steady pace for the set distance or time without leaning. Switch hands.", "c": "Shoulders level, ribs down, controlled steps, firm grip.", "x": "Leaning toward or away from the weight, shrugging, or letting the weight swing."}, "he": {"n": "הליכת מזוודה (יד אחת)", "s": "החזיקו משקולת או קטלבל אחד לצד הגוף, יד ישרה, ועמדו זקוף.", "m": "הלכו בקצב קבוע למרחק או לזמן שנקבע בלי להטות את הגו. החליפו יד.", "c": "כתפיים בגובה שווה, צלעות למטה, צעדים מבוקרים, אחיזה חזקה.", "x": "הטיה לכיוון המשקל או הרחק ממנו, הרמת הכתף, או נדנוד המשקל."}}, "c-farm": {"en": {"s": "Hold a weight in each hand at your sides (or stand inside a trap bar), arms straight, and stand tall.", "m": "Walk at a steady pace for the set distance or time, then put the weights down with a flat back.", "c": "Tall posture, shoulders back and down, ribs down, short controlled steps, firm grip.", "x": "Rounding the back when picking up or putting down, shrugging, or leaning forward."}, "he": {"n": "הליכת חקלאי", "s": "החזיקו משקל בכל יד לצד הגוף (או מוט משושה), ידיים ישרות, ועמדו זקוף.", "m": "הלכו בקצב קבוע למרחק או לזמן שנקבע, ואז הניחו את המשקלות עם גב ישר.", "c": "יציבה זקופה, כתפיים לאחור ולמטה, צלעות למטה, צעדים קצרים ומבוקרים, אחיזה חזקה.", "x": "עיגול הגב בהרמה או בהנחה, הרמת כתפיים, או הטיה קדימה."}}, "s-ohw": {"en": {"s": "Press one dumbbell overhead and lock the arm out, upper arm near the ear, wrist straight. The other arm relaxed at your side.", "m": "Walk at a steady pace for the set distance or time, keeping the dumbbell stacked over the shoulder. Switch arms.", "c": "Shoulder blade drawn up and back toward the weight, ribs down, stand tall without leaning away from the weight.", "x": "Bending the elbow, letting the arm drift forward, leaning to the side, or arching the lower back."}, "he": {"n": "הליכה עם משקולת אחת מעל הראש", "s": "דחפו משקולת אחת מעל הראש ונעלו את היד ישרה, הזרוע ליד האוזן, שורש כף היד ישר. היד השנייה רפויה לצד הגוף.", "m": "הלכו בקצב קבוע למרחק או לזמן שנקבע, כשהמשקולת נשארת מעל הכתף. החליפו יד.", "c": "השכמה משוכה למעלה ולאחור לכיוון המשקל, צלעות למטה, עמידה זקופה בלי להטות את הגו הרחק מהמשקל.", "x": "כיפוף המרפק, יד שבורחת קדימה, הטיה לצד, או קשת בגב התחתון."}}, "s-ber": {"en": {"s": "Anchor a band at elbow height and stand side-on to it, holding the band in the hand farther from the anchor. Elbow bent to 90° and held against your side (a rolled towel between elbow and body helps).", "m": "Rotate the forearm outward, away from the body, keeping the elbow at 90° and at your side. Return slowly.", "c": "Movement from the shoulder only; the forearm stays horizontal. Stand farther from the anchor for more resistance. Slow return, 2–3 s.", "x": "The elbow drifting away from the body, twisting the trunk, or bending the wrist to gain range."}, "he": {"n": "סיבוב חיצוני של הכתף עם גומייה, מרפק ב-90°", "s": "עגנו גומייה בגובה המרפק ועמדו בצד לעיגון, אחזו בגומייה ביד הרחוקה מהעיגון. המרפק מכופף ל-90° וצמוד לגוף (מגבת מגולגלת בין המרפק לגוף עוזרת).", "m": "סובבו את האמה החוצה, הרחק מהגוף, כשהמרפק נשאר ב-90° וצמוד לגוף. חזרו לאט.", "c": "התנועה רק מהכתף; האמה נשארת אופקית. התרחקות מהעיגון מגבירה את ההתנגדות. חזרה איטית, 2–3 שניות.", "x": "התרחקות המרפק מהגוף, סיבוב הגו, או כיפוף שורש כף היד כדי להגדיל טווח."}}, "s-bt": {"en": {"s": "Stand on the middle of the band and hinge at the hips with a flat back, torso close to parallel to the floor, knees slightly bent. One end in each hand (cross the ends for more tension), arms hanging straight down, thumbs forward.", "m": "Raise the arms out to the sides to shoulder height to form a “T”, squeezing the shoulder blades together. Lower slowly against the band.", "c": "Start the movement from the shoulder blades. Arms straight, neck in line with the spine. Use a band you can control through the full range.", "x": "Rounding the back, shrugging, or using momentum."}, "he": {"n": "T בהטיה קדימה עם גומייה", "s": "עמדו על מרכז הגומייה והתכופפו מהאגן עם גב ישר, הגו כמעט מקביל לרצפה, ברכיים מעט כפופות. קצה בכל יד (הצלבת הקצוות מגבירה את המתח), ידיים תלויות ישר למטה, אגודלים קדימה.", "m": "הרימו את הידיים לצדדים עד גובה הכתפיים ליצירת „T”, תוך קירוב השכמות. הורידו לאט נגד הגומייה.", "c": "התנועה מתחילה מהשכמות. ידיים ישרות, צוואר בהמשך הגב. בחרו גומייה שאפשר לשלוט בה לאורך כל הטווח.", "x": "עיגול הגב, הרמת כתפיים, או תנופה."}}, "s-by": {"en": {"s": "Same position as the band “T”: standing on the band, hip hinge, flat back, one end in each hand.", "m": "Raise the arms forward and up at about 45° outside the head to form a “Y”, thumbs up, until the arms are in line with the torso. Lower slowly against the band.", "c": "Draw the shoulder blades down and back before lifting. Light band.", "x": "Arching the lower back, shrugging (the upper trapezius takes over), or bending the elbows."}, "he": {"n": "Y בהטיה קדימה עם גומייה", "s": "אותו מנח כמו ב-T עם גומייה: עמידה על הגומייה, הטיה מהאגן, גב ישר, קצה בכל יד.", "m": "הרימו את הידיים קדימה ולמעלה בזווית של כ-45° מחוץ לקו הראש ליצירת „Y”, אגודלים למעלה, עד שהידיים בקו הגו. הורידו לאט נגד הגומייה.", "c": "משכו את השכמות למטה ולאחור לפני ההרמה. גומייה קלה.", "x": "קשת בגב התחתון, הרמת כתפיים (הטרפז העליון משתלט), או כיפוף מרפקים."}}, "c-bpallof": {"en": {"s": "Anchor a band at chest height and stand (or half-kneel) side-on to it. Hold the band with both hands against the sternum, far enough away that it is taut.", "m": "Press the hands straight out in front of the chest, hold 2–3 s while resisting the pull, then bring them back. Do both sides.", "c": "The trunk stays square to the front. Stand farther from the anchor for more resistance.", "x": "Rotating toward the anchor, leaning away from it, or shrugging."}, "he": {"n": "פאלוף עם גומייה", "s": "עגנו גומייה בגובה החזה ועמדו (או כרעו על ברך אחת) בצד לעיגון. אחזו בגומייה בשתי הידיים צמוד לעצם החזה, במרחק שבו הגומייה מתוחה.", "m": "דחפו את הידיים ישר קדימה מול החזה, החזיקו 2–3 שניות תוך התנגדות למשיכה, והחזירו. בצעו בשני הצדדים.", "c": "הגו נשאר ישר מול הכיוון הקדמי. התרחקות מהעיגון מגבירה את ההתנגדות.", "x": "סיבוב לכיוון העיגון, הטיה הרחק ממנו, או הרמת כתפיים."}}, "c-pike": {"en": {"s": "High plank with the feet on sliders (or on a towel or in socks on a smooth floor), hands under the shoulders.", "m": "Keeping the legs straight and the hands in place, lift the hips and slide the feet toward the hands into an inverted V. Slide back out to the plank with control.", "c": "Arms straight and shoulders pushing the floor away; the movement comes from the hips. Return slowly without letting the hips sag.", "x": "Bending the knees, the shoulders drifting far past the hands, or sagging toward the floor at the end."}, "he": {"n": "פייק עם סליידרים", "s": "פלאנק גבוה עם כפות הרגליים על סליידרים (או על מגבת או בגרביים על רצפה חלקה), כפות הידיים מתחת לכתפיים.", "m": "הרגליים ישרות והידיים נשארות במקום; הרימו את האגן והחליקו את כפות הרגליים לכיוון הידיים לצורת V הפוכה. החליקו חזרה לפלאנק בשליטה.", "c": "ידיים ישרות וכתפיים דוחפות את הרצפה; התנועה מהאגן. חזרה איטית בלי שקיעת האגן.", "x": "כיפוף ברכיים, כתפיים שבורחות הרבה לפני הידיים, או שקיעה לכיוון הרצפה בסוף התנועה."}}, "c-rpl": {"en": {"s": "Sit with the legs straight and the hands on the floor slightly behind the hips, fingers toward the feet (or turned out if the wrists are uncomfortable).", "m": "Push through the hands and heels to lift the hips until the body is straight from shoulders to ankles. Hold.", "c": "Glutes squeezed, chest open, shoulders away from the ears, neck in line.", "x": "Hips sagging, the head dropping back, or shrugging."}, "he": {"n": "פלאנק הפוך (הרמת אגן)", "s": "שבו עם רגליים ישרות, כפות הידיים על הרצפה מעט מאחורי האגן, אצבעות לכיוון הרגליים (או מופנות החוצה אם שורשי כפות הידיים לא נוחים).", "m": "דחפו דרך הידיים והעקבים והרימו את האגן עד שהגוף ישר מהכתפיים עד הקרסוליים. החזיקו.", "c": "ישבן מכווץ, חזה פתוח, כתפיים רחוק מהאוזניים, צוואר בהמשך הגב.", "x": "שקיעת האגן, נפילת הראש לאחור, או הרמת כתפיים."}}, "c-rpll": {"en": {"s": "Reverse plank position: hands behind the hips, hips lifted, body straight from shoulders to ankles.", "m": "Keeping the hips up and level, lift one straight leg a little, hold 1–2 s, lower and switch.", "c": "The hips do not drop or rotate when the leg lifts; the glutes of the support leg keep working.", "x": "Hips sagging or twisting, bending the support knee, or rushing."}, "he": {"n": "פלאנק הפוך עם הרמת רגל", "s": "תנוחת פלאנק הפוך: כפות הידיים מאחורי האגן, האגן מורם, הגוף ישר מהכתפיים עד הקרסוליים.", "m": "האגן נשאר גבוה וישר; הרימו רגל ישרה מעט, החזיקו 1–2 שניות, הורידו והחליפו.", "c": "האגן לא יורד ולא מסתובב כשהרגל עולה; הישבן של רגל התמיכה ממשיך לעבוד.", "x": "שקיעה או סיבוב של האגן, כיפוף ברך רגל התמיכה, או ביצוע מהיר."}}, "c-whk": {"en": {"s": "Kneel with the hands on the ab wheel handles under the shoulders, arms straight.", "m": "Roll the wheel forward, opening the shoulders and hips together, as far as you can without the lower back arching. Pull back to the start with the trunk and arms.", "c": "Ribs down, glutes squeezed, trunk braced. Start with a short range and extend it as control improves.", "x": "The lower back sagging, the hips staying back, or going past the range you control."}, "he": {"n": "גלגל בטן על הברכיים", "s": "כרעו על הברכיים, הידיים על ידיות גלגל הבטן מתחת לכתפיים, ידיים ישרות.", "m": "גלגלו את הגלגל קדימה תוך פתיחת הכתפיים והאגן יחד, ככל שאפשר בלי קשת בגב התחתון. משכו חזרה למנח ההתחלה בעזרת הבטן והידיים.", "c": "צלעות למטה, ישבן מכווץ, בטן מופעלת. התחילו בטווח קצר והגדילו אותו ככל שהשליטה משתפרת.", "x": "שקיעת הגב התחתון, אגן שנשאר מאחור, או יציאה מעבר לטווח שבשליטה."}}, "c-whf": {"en": {"s": "Stand on the toes, feet hip-width, hinge at the hips and place the hands on the ab wheel in front of the feet.", "m": "Roll the wheel forward, lowering the body as one straight unit as far as you can control without the lower back arching. Pull back to the start.", "c": "The advanced version of the kneeling rollout. Ribs down and glutes squeezed throughout.", "x": "The lower back sagging, the hips staying back, or going past the range you control."}, "he": {"n": "גלגל בטן ברגליים ישרות", "s": "עמדו על קצות האצבעות, רגליים ברוחב האגן, התכופפו מהאגן והניחו את הידיים על גלגל הבטן לפני כפות הרגליים.", "m": "גלגלו את הגלגל קדימה תוך הורדת הגוף כיחידה ישרה אחת, ככל שאפשר בשליטה ובלי קשת בגב התחתון. משכו חזרה למנח ההתחלה.", "c": "זו הגרסה המתקדמת של הגלגל על הברכיים. צלעות למטה וישבן מכווץ לאורך כל התנועה.", "x": "שקיעת הגב התחתון, אגן שנשאר מאחור, או יציאה מעבר לטווח שבשליטה."}}, "c-drag": {"en": {"s": "High plank with the feet on sliders (or on a towel or in socks on a smooth floor), hands under the shoulders.", "m": "Walk the hands forward one at a time, dragging the feet along the floor behind you, for the set distance.", "c": "Hips level and still with every hand step; trunk braced; small hand steps.", "x": "Hips swaying side to side, hips sagging or piking up, or rushing."}, "he": {"n": "גרירה בפלאנק (הליכת ידיים)", "s": "פלאנק גבוה עם כפות הרגליים על סליידרים (או על מגבת או בגרביים על רצפה חלקה), כפות הידיים מתחת לכתפיים.", "m": "התקדמו עם הידיים, יד אחר יד, כשכפות הרגליים נגררות על הרצפה מאחור, למרחק שנקבע.", "c": "האגן ישר ויציב בכל צעד של יד; בטן מופעלת; צעדי ידיים קטנים.", "x": "נדנוד האגן מצד לצד, שקיעת האגן או הרמתו, או ביצוע מהיר."}}, "c-lsit": {"en": {"s": "Sit with the legs straight and together, feet on sliders (or on a towel or in socks on a smooth floor), hands on the floor beside or slightly behind the hips with the arms straight. Lift the buttocks off the floor so you are supported on the hands and heels with the hips bent to about 90° (an L shape).", "m": "Keeping the knees straight, drive the hips up and slide the feet away until the body is straight from shoulders to ankles, as in a reverse plank. Pull the feet back to the L position under control.", "c": "Knees stay straight throughout; only the hips move, between 90° and fully straight. Arms straight, shoulders away from the ears; glutes and hamstrings pull the feet back.", "x": "Bending the knees, sitting down on the floor between repetitions, shrugging, or rushing the slide."}, "he": {"n": "גשר L-sit על סליידרים", "s": "שבו עם רגליים ישרות וצמודות, כפות הרגליים על סליידרים (או על מגבת או בגרביים על רצפה חלקה), כפות הידיים על הרצפה לצד האגן או מעט מאחוריו וידיים ישרות. הרימו את הישבן מהרצפה כך שאתם נתמכים על הידיים והעקבים, והאגן כפוף לכ-90° (צורת L).", "m": "הברכיים ישרות; דחפו את האגן למעלה והחליקו את כפות הרגליים קדימה עד שהגוף ישר מהכתפיים עד הקרסוליים, כמו בפלאנק הפוך. משכו את כפות הרגליים חזרה לצורת L בשליטה.", "c": "הברכיים ישרות לאורך כל התנועה; רק האגן זז, בין 90° ליישור מלא. ידיים ישרות, כתפיים רחוק מהאוזניים; הישבן והירך האחורית מושכים את הרגליים חזרה.", "x": "כיפוף ברכיים, ישיבה על הרצפה בין חזרות, הרמת כתפיים, או החלקה מהירה."}}, "s-bier": {"en": {"s": "Stand tall holding a light band in both hands, palms up, elbows bent to 90° and tucked against your sides, hands about shoulder-width apart with slight tension in the band.", "m": "Rotate both forearms outward, away from each other, keeping the elbows at your sides. Return slowly against the band.", "c": "Movement comes from the shoulders only; the forearms stay horizontal; draw the shoulder blades lightly back at the end. Slow return, 2–3 s.", "x": "Elbows drifting away from the body, pulling the band apart by straightening the elbows, or arching the lower back."}, "he": {"n": "סיבוב חיצוני של הכתפיים עם גומייה, שתי ידיים, מרפקים ב-90°", "s": "עמדו זקוף ואחזו גומייה קלה בשתי הידיים, כפות ידיים כלפי מעלה, מרפקים כפופים ל-90° וצמודים לגוף, הידיים בערך ברוחב הכתפיים עם מתח קל בגומייה.", "m": "סובבו את שתי האמות החוצה, הרחק זו מזו, כשהמרפקים נשארים צמודים לגוף. חזרו לאט נגד הגומייה.", "c": "התנועה רק מהכתפיים; האמות נשארות אופקיות; קירוב קל של השכמות לאחור בסוף התנועה. חזרה איטית, 2–3 שניות.", "x": "התרחקות המרפקים מהגוף, מתיחת הגומייה ביישור המרפקים, או קשת בגב התחתון."}}, "s-er90": {"en": {"s": "Stand or sit with the upper arm raised to the side at shoulder height, parallel to the floor, elbow bent to 90° and forearm pointing forward. Hold a water bottle or a similar light object, or a light band anchored under the foot on the same side.", "m": "Rotate the forearm upward until it points to the ceiling, keeping the upper arm level and the elbow at 90°. Lower slowly. Do both sides.", "c": "The upper arm stays parallel to the floor and the elbow in line with the shoulder. Light load, full control.", "x": "Dropping the elbow, shrugging, arching the back, or using momentum."}, "he": {"n": "סיבוב חיצוני של הכתף ב-90° (בקבוק או גומייה)", "s": "עמדו או שבו כשהזרוע מורמת לצד בגובה הכתף, מקבילה לרצפה, המרפק כפוף ל-90° והאמה מכוונת קדימה. החזיקו בקבוק מים או חפץ קל דומה, או גומייה קלה מעוגנת מתחת לכף הרגל באותו צד.", "m": "סובבו את האמה למעלה עד שהיא מכוונת לתקרה, כשהזרוע נשארת אופקית והמרפק ב-90°. הורידו לאט. בצעו בשני הצדדים.", "c": "הזרוע נשארת מקבילה לרצפה והמרפק בקו הכתף. משקל קל, שליטה מלאה.", "x": "הורדת המרפק, הרמת הכתף, קשת בגב, או תנופה."}}};
+const BY=Object.fromEntries(EX.map(e=>[e.id,e]));
+const CAT={S:{label:"Shoulder"},C:{label:"Core"}};
+const LIKE_W=2.5, SAME_SUB_W=0.25, LAST_SESSION_W=0.35;
+const DEFAULT_N={S:3,C:3};
+const KEEP_DAYS=120;
+
+/* ---------- Storage (this device) ---------- */
+const KEY="rehabDraw.v1";
+let storageOK=true;
+function load(){try{const r=localStorage.getItem(KEY);return r?JSON.parse(r):null}catch(e){storageOK=false;return null}}
+function norm(x){if(!x||typeof x!=="object")return null;if(!x.archers)x.archers={};if(!x.localNames)x.localNames=[];return x}
+let S=norm(load())||{lastArcher:"",localNames:[],archers:{}};
+/* Another tab or an older copy of this page may have saved since this one loaded: always start from what is stored. */
+function sync(){const f=norm(load());if(f)S=f}
+let persistAsked=false;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));
+  if(!persistAsked&&navigator.storage&&navigator.storage.persist){persistAsked=true;navigator.storage.persist().catch(()=>{})}}catch(e){storageOK=false}}
+function A(name){
+  if(!S.archers[name])S.archers[name]={likes:[],log:[],pending:null,n:{...DEFAULT_N}};
+  const a=S.archers[name]; if(!a.n)a.n={...DEFAULT_N}; if(!a.blocked)a.blocked={}; return a;
+}
+
+/* ---------- Roster (published with the page) ---------- */
+let ROSTER=[];
+try{ROSTER=JSON.parse(document.getElementById("roster-data").textContent)||[]}catch(e){ROSTER=[]}
+function allNames(){const own=Object.keys(S.archers).filter(n=>{const a=S.archers[n];return a&&((a.log&&a.log.length)||(a.likes&&a.likes.length))});
+  return [...new Set([...ROSTER,...S.localNames,...own])].sort((a,b)=>a.localeCompare(b))}
+
+/* ---------- Time: training week starts Sunday 00:00 local ---------- */
+function weekStart(d=new Date()){const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-x.getDay());return x.getTime()}
+const fmtDay=t=>new Date(t).toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"});
+const fmtTime=t=>new Date(t).toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
+
+/* ---------- Draw logic: continuous rotation per category ----------
+   A cycle closes only when every exercise in the category has been completed (no time limit).
+   Inside a cycle, not-yet-done exercises fill the slots; liked ones come up earlier (x2.5).
+   One slot per session may be a liked exercise already done this cycle (50% chance, needs 2+ slots),
+   so the cycle still advances by at least n-1 exercises every session. */
+const BONUS_P=0.5, KIND_ORDER={liked:0,fill:0,cycle:1,next:2};
+function weekLog(a){const w=weekStart();return a.log.filter(s=>s.t>=w)}
+function poolOf(c){return EX.filter(e=>e.c===c)}
+/* Exercises an archer has paused ("can't do") are left out of the draw and of the cycle until restored. */
+function isPaused(a,id){return !!(a.blocked&&a.blocked[id])}
+/* No-equipment mode: bodyweight only (floor, wall, sturdy chair, a towel or socks on a smooth floor instead of sliders). Classified per exercise
+   from its equipment and setup, not from the library's Travel-compatible column. The cycle is tracked over this set;
+   the full cycle picks up again when the mode is switched off, since all sessions stay in the log. */
+const TRAVEL=new Set(["s-bt", "s-by", "s-bier", "s-er90", "s-dep", "s-prot", "s-swim", "s-wall", "c-inch", "c-hollow", "c-hroll", "c-touch", "c-super", "c-spk", "c-sps", "c-bext", "c-cext", "c-pike", "c-rpl", "c-rpll", "c-drag", "c-lsit"]);
+function inMode(a,id){return !a.noEquip||TRAVEL.has(id)}
+function availOf(a,c){return poolOf(c).filter(e=>!isPaused(a,e.id)&&inMode(a,e.id))}
+function cycleState(a,c){
+  const avail=new Set(availOf(a,c).map(e=>e.id)), size=avail.size; let done=new Set(), cycle=1;
+  if(size)for(const s of a.log){for(const id of s.ids){if(!avail.has(id))continue;done.add(id);if(done.size>=size){done=new Set();cycle++}}}
+  return {done,cycle,size};
+}
+function lastSessionIds(a){const l=a.log[a.log.length-1];return new Set(l?l.ids:[])}
+function lastDone(a,id){for(let i=a.log.length-1;i>=0;i--){if(a.log[i].ids.includes(id))return a.log[i].t}return 0}
+function weightedPick(list,wf){
+  const ws=list.map(wf);const tot=ws.reduce((p,q)=>p+q,0);if(!tot)return list[0];
+  let r=Math.random()*tot;for(let i=0;i<list.length;i++){r-=ws[i];if(r<=0)return list[i]}return list[list.length-1];
+}
+/* Returns [{id,kind}] for one category; kind: "cycle" (counts toward this cycle), "liked" (liked repeat), "next" (cycle finished, starts the next one). */
+/* Wrist rule: at most WRIST_MAX exercises with weight on the hands (wrists in extension) per session, across both categories. */
+const WRIST=new Set(["s-dep", "s-prot", "c-inch", "c-touch", "c-super", "c-pike", "c-rpl", "c-rpll", "c-drag", "c-lsit"]), WRIST_MAX=1;
+/* Versions of the same movement (cable/band, progression pairs): at most one per session. */
+const FAM={"s-cer": "er", "s-t": "t", "s-y": "y", "c-hollow": "hollow", "c-hroll": "hollow", "c-pallof": "pallof", "c-spk": "sideplank", "c-sps": "sideplank", "c-lmtw": "landmine", "c-bext": "proneext", "c-cext": "proneext", "c-lm180": "landmine", "s-ber": "er", "s-bt": "t", "s-by": "y", "c-bpallof": "pallof", "c-rpl": "rplank", "c-rpll": "rplank", "c-whk": "wheel", "c-whf": "wheel", "s-bier": "er", "s-er90": "er90", "s-der": "er90"};
+function wristCount(ids){return ids.filter(id=>WRIST.has(id)).length}
+function drawCat(a,c,n,exclude,keep,allowBonus,wristUsed){
+  const done=cycleState(a,c).done, last=lastSessionIds(a), likes=new Set(a.likes);
+  const picked=[], out=[], usedSub=new Map(), fams=new Set(); let wr=wristUsed||0;
+  (keep||[]).forEach(id=>{const s=BY[id].sub;usedSub.set(s,(usedSub.get(s)||0)+1);if(FAM[id])fams.add(FAM[id])});
+  const w=(e,extra)=>(likes.has(e.id)?LIKE_W:1)*Math.pow(SAME_SUB_W,usedSub.get(e.sub)||0)*(last.has(e.id)?LAST_SESSION_W:1)*(extra||1);
+  const ok=e=>!picked.includes(e)&&!(WRIST.has(e.id)&&wr>=WRIST_MAX)&&!(FAM[e.id]&&fams.has(FAM[e.id]));
+  const take=(e,kind)=>{picked.push(e);out.push({id:e.id,kind});usedSub.set(e.sub,(usedSub.get(e.sub)||0)+1);if(WRIST.has(e.id))wr++;if(FAM[e.id])fams.add(FAM[e.id])};
+  const pool=availOf(a,c).filter(e=>!exclude.has(e.id));
+  const remaining=pool.filter(e=>!done.has(e.id));
+  const likedDone=pool.filter(e=>done.has(e.id)&&likes.has(e.id));
+  const bonus=(allowBonus&&n>=2&&likedDone.some(ok)&&remaining.length>=n-1&&Math.random()<BONUS_P)?1:0;
+  for(let f;out.length<n-bonus&&(f=remaining.filter(ok)).length;){take(weightedPick(f,x=>w(x)),"cycle")}
+  if(bonus){const f=likedDone.filter(ok);if(f.length)take(weightedPick(f,x=>w(x)),"liked")}
+  const now=Date.now();
+  /* Slots still open: either the cycle is finished ("next": starts the next cycle) or what is left of it
+     is blocked by the wrist rule this session ("fill": a repeat that does not affect the cycle). */
+  for(let f;out.length<n&&(f=pool.filter(ok)).length;){
+    const e=weightedPick(f,x=>w(x,1+Math.min(14,(now-lastDone(a,x.id))/864e5)));
+    const cycleLeft=remaining.some(x=>!picked.includes(x));
+    take(e,done.has(e.id)&&cycleLeft?"fill":(done.has(e.id)||!remaining.includes(e)?"next":"cycle"));
+  }
+  return out;
+}
+function drawSession(a){
+  const order=Math.random()<0.5?["S","C"]:["C","S"], got={S:[],C:[]};
+  let wr=0;
+  for(const c of order){got[c]=drawCat(a,c,a.n[c],new Set(),[],true,wr);wr+=wristCount(got[c].map(x=>x.id))}
+  a.pending={t:Date.now(),items:[...got.S,...got.C]};
+}
+function replaceOne(a,id){
+  const it=a.pending.items, idx=it.findIndex(x=>x.id===id); if(idx<0)return null;
+  const c=BY[id].c, shown=new Set(it.map(x=>x.id));
+  const others=it.filter(x=>x.id!==id).map(x=>x.id);
+  const keep=others.filter(x=>BY[x].c===c);
+  return {it,idx,r:drawCat(a,c,1,shown,keep,false,wristCount(others))};
+}
+function swapOne(a,id){
+  const o=replaceOne(a,id); if(!o)return false;
+  if(o.r.length)o.it[o.idx]=o.r[0]; else toast("No other "+CAT[BY[id].c].label.toLowerCase()+" exercise left to swap in");
+  return o.r.length>0;
+}
+const WHY={pain:"Pain or discomfort",equip:"No equipment",other:"Other reason"};
+function pauseEx(a,id,why){
+  a.blocked[id]={t:Date.now(),why};
+  if(a.pending){const it=a.pending.items, idx=it.findIndex(x=>x.id===id);
+    if(idx>=0){const c=BY[id].c, shown=new Set(it.map(x=>x.id)), keep=it.filter(x=>x.id!==id&&BY[x.id].c===c).map(x=>x.id);
+      const o=replaceOne(a,id); if(o&&o.r.length)it[idx]=o.r[0]; else it.splice(idx,1);}}
+}
+
+/* ---------- Progress: weekly goal, streak, arrows, badges (derived from this archer's own log) ---------- */
+const DEFAULT_GOAL=5, MIN_GOAL=3, MAX_GOAL=7;
+function goalOf(a){return Math.max(MIN_GOAL,Math.min(MAX_GOAL,a.goal||DEFAULT_GOAL))}
+function addWeeks(w,k){const d=new Date(w);d.setDate(d.getDate()+7*k);return weekStart(d)}
+function streaks(a){
+  const m=new Map(), g=goalOf(a), cur=weekStart();
+  for(const s of a.log){const w=weekStart(new Date(s.t));m.set(w,(m.get(w)||0)+1)}
+  let w=(m.get(cur)||0)>=g?cur:addWeeks(cur,-1), streak=0;
+  while((m.get(w)||0)>=g){streak++;w=addWeeks(w,-1)}
+  let best=0,run=0,met=0;
+  if(a.log.length){for(let x=weekStart(new Date(a.log[0].t));x<=cur;x=addWeeks(x,1)){
+    if((m.get(x)||0)>=g){run++;met++;best=Math.max(best,run)}else if(x!==cur)run=0}}
+  return {streak,best:Math.max(best,streak),weeksMet:met};
+}
+function fullCycle(a,c){const ne=a.noEquip;a.noEquip=false;const r=cycleState(a,c).cycle;a.noEquip=ne;return r}
+function statsOf(a){
+  const tried=new Set(), cyc={S:0,C:0}; let arrows=0, ne=0;
+  for(const s of a.log){arrows+=s.ids.length;s.ids.forEach(i=>tried.add(i));(s.cyc||[]).forEach(c=>cyc[c]++);if(s.ne)ne++}
+  return {...streaks(a),arrows,sessions:a.log.length,cyc,ne,thisWeek:weekLog(a).length,goal:goalOf(a),
+    triedAll:EX.filter(e=>!isPaused(a,e.id)).every(e=>tried.has(e.id))};
+}
+/* Arrow milestones use archery round sizes: 72 (ranking round), 144 (double round), 720, 1440. */
+const BADGES=[
+ {id:"first",t:"First end",d:"Complete your first session",ok:s=>s.sessions>=1},
+ {id:"goal1",t:"On target",d:"Hit your weekly goal",ok:s=>s.weeksMet>=1},
+ {id:"st3",t:"Grouping",d:"Weekly goal 3 weeks in a row",ok:s=>s.best>=3},
+ {id:"st6",t:"Tight group",d:"Weekly goal 6 weeks in a row",ok:s=>s.best>=6},
+ {id:"st12",t:"Season form",d:"Weekly goal 12 weeks in a row",ok:s=>s.best>=12},
+ {id:"cs",t:"Shoulder round",d:"Complete a full shoulder cycle",ok:s=>s.cyc.S>=1},
+ {id:"cc",t:"Core round",d:"Complete a full core cycle",ok:s=>s.cyc.C>=1},
+ {id:"all",t:"Full quiver",d:"Do every exercise at least once",ok:s=>s.triedAll},
+ {id:"a72",t:"Ranking round",d:"72 arrows (exercises done)",ok:s=>s.arrows>=72},
+ {id:"a144",t:"Double round",d:"144 arrows",ok:s=>s.arrows>=144},
+ {id:"a720",t:"Ten rounds",d:"720 arrows",ok:s=>s.arrows>=720},
+ {id:"a1440",t:"Twenty rounds",d:"1,440 arrows",ok:s=>s.arrows>=1440},
+ {id:"road",t:"On the road",d:"5 sessions in no-equipment mode",ok:s=>s.ne>=5}
+];
+function earnedSet(st){return new Set(BADGES.filter(b=>b.ok(st)).map(b=>b.id))}
+const MEDAL='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 2h5l3 9h-5zM22 2h-5l-3 9h5z" fill="currentColor" opacity=".55"/><circle cx="16" cy="20" r="10" fill="currentColor"/><circle cx="16" cy="20" r="6.5" fill="none" stroke="var(--surface)" stroke-width="1.6"/><circle cx="16" cy="20" r="2.4" fill="var(--surface)"/></svg>';
+const RING_COLORS=["var(--gold)","var(--core)","var(--shoulder)","var(--ring-black)","var(--ring-white)","var(--ring-white)","var(--ring-white)"];
+/* Weekly goal as a target face: one ring per planned session, filled from the outside in; the last session hits the gold. */
+function goalRing(done,goal){
+  let c='';
+  for(let i=0;i<goal;i++){const r=(36*(goal-i)/goal).toFixed(2), filled=i<done;
+    c+='<circle cx="38" cy="38" r="'+r+'" fill="'+(filled?RING_COLORS[goal-1-i]:'var(--surface)')+'" stroke="var(--line)" stroke-width="1"/>';}
+  return '<svg viewBox="0 0 76 76" role="img" aria-label="'+done+' of '+goal+' sessions this week">'+c+'</svg>';
+}
+
+/* ---------- Rendering ---------- */
+const esc=s=>String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+const HEART='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+const SWAP='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h13l-3-3M20 16H7l3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+const app=document.getElementById("app");
+const main=document.createElement("div");main.style.cssText="display:flex;flex-direction:column;gap:22px";
+app.appendChild(main);
+let canEditRoster=false, artifactNS=null, askId=null, drawConfirm=false, undoConfirm=false;
+
+function render(){
+  const name=S.lastArcher&&allNames().includes(S.lastArcher)?S.lastArcher:"";
+  const names=allNames();
+  let h="";
+  if(!storageOK)h+='<p class="notice">This browser is blocking storage, so your rotation will not be remembered after you close the page.</p>';
+
+  /* archer picker */
+  h+='<section class="panel" aria-labelledby="who"><div class="row" style="justify-content:space-between"><h2 id="who">Archer</h2>'+''+'</div>';
+  if(names.length){
+    h+='<label class="label" for="archer">Choose your name</label><select id="archer"><option value="">—</option>'+names.map(n=>'<option'+(n===name?' selected':'')+'>'+esc(n)+'</option>').join("")+'</select>';
+  }else{
+    h+='<p class="empty" style="text-align:left;padding:0">No squad list yet. The coach adds names under <b>Squad list</b> at the bottom of the page. You can add your own name below in the meantime.</p>';
+  }
+  h+='<details><summary>Not on the list? Add your name on this device</summary><div class="addname" style="margin-top:8px"><input type="text" id="newname" maxlength="40" placeholder="First and last name" autocomplete="name"><button class="btn" id="addname">Add</button></div></details></section>';
+
+  if(name){
+    const a=A(name), wl=weekLog(a);
+    const now=new Set((a.pending?a.pending.items:[]).map(x=>x.id));
+    h+='<section class="panel" aria-label="Rotation"><div class="row" style="justify-content:space-between"><h2>Rotation</h2><span class="mono">'+wl.length+' session'+(wl.length===1?'':'s')+' this week</span></div>'+
+      '<div class="toggle"><div style="min-width:0;flex:1"><div class="name" id="noeq-l">No equipment</div><div class="hint" id="noeq-d">Bodyweight only: the floor, a wall, a sturdy chair, a towel or socks instead of sliders, and a light band or water bottle where an exercise says so.</div></div><button class="switch" role="switch" id="noequip" aria-checked="'+(!!a.noEquip)+'" aria-labelledby="noeq-l" aria-describedby="noeq-d"><span></span></button></div><div class="week">';
+    for(const c of ["S","C"]){
+      const cs=cycleState(a,c), done=cs.done, pool=poolOf(c), d=pool.filter(e=>done.has(e.id)).length, avail=cs.size;
+      h+='<div class="cat '+c+'"><div class="head"><span class="name">'+CAT[c].label+' <span class="label">'+(a.noEquip?'no-equipment set':'cycle '+cs.cycle)+'</span></span><span class="mono" title="Exercises completed in this cycle">'+d+'/'+avail+'</span></div><div class="dots">'+
+        pool.map(e=>'<span class="dot'+(!inMode(a,e.id)?' off':isPaused(a,e.id)?' paused':done.has(e.id)?' done':'')+(now.has(e.id)?' now':'')+'" title="'+esc(e.n)+(!inMode(a,e.id)?' (needs equipment)':isPaused(a,e.id)?' (paused)':done.has(e.id)?' (done)':'')+'"></span>').join("")+
+        '</div><div class="row" style="gap:8px"><span class="label">Per session</span><span class="stepper"><button data-step="'+c+'" data-d="-1" aria-label="Fewer '+CAT[c].label+' exercises">−</button><span class="mono">'+a.n[c]+'</span><button data-step="'+c+'" data-d="1" aria-label="More '+CAT[c].label+' exercises">+</button></span></div></div>';
+    }
+    h+='</div></section>';
+  }
+
+  /* draw */
+  const pa=name?A(name).pending:null, hasPending=!!(pa&&pa.items&&pa.items.length);
+  if(hasPending&&pa.t<new Date().setHours(0,0,0,0)){
+    h+='<section class="confirm" role="alert"><div><b>Not saved yet:</b> you drew a session on '+esc(fmtDay(pa.t))+' but didn’t mark it done.</div><div class="chips"><button class="btn primary" data-complete="1" data-when="drawn">I did it on '+esc(fmtDay(pa.t))+'</button><button class="btn" id="discard">I didn’t do it</button></div></section>';
+  }
+  h+='<section class="drawzone"><button class="target" id="draw" '+(name?'':'disabled')+' aria-label="Draw exercises"><span>DRAW</span></button><div class="hint">'+(name?'Tap the target or press <kbd>Space</kbd>':'Choose your name first')+'</div>';
+  if(drawConfirm&&hasPending){
+    h+='<div class="confirm" role="alert"><div>The session below isn’t marked done yet. Drawing again would discard it.</div><div class="chips"><button class="btn primary" data-complete="1">Mark it done</button><button class="btn" id="redraw">Discard it and draw new</button><button class="btn quiet" id="drawcancel">Cancel</button></div></div>';
+  }
+  h+='</section>';
+
+  if(name){
+    const a=A(name), likes=new Set(a.likes);
+    if(a.pending&&a.pending.items.length){
+      for(const c of ["S","C"]){
+        const its=a.pending.items.filter(x=>BY[x.id].c===c); if(!its.length)continue;
+        h+='<section class="group '+c+'"><h2>'+CAT[c].label+'</h2>';
+        for(const it of its){const e=BY[it.id];
+          h+='<div class="card"><div class="body"><div class="t">'+esc(e.n)+(it.kind==="liked"?'<span class="tag" title="One of your liked exercises, already done this cycle">liked repeat</span>':it.kind==="next"?'<span class="tag" title="This cycle is complete; this one starts the next cycle">next cycle</span>':it.kind==="fill"?'<span class="tag" title="Repeat, because the exercises left in your cycle load the wrists and this session already has one">repeat</span>':'')+'</div><div class="m">'+esc(e.eq)+' · '+esc(e.pos)+' · '+esc(e.lat)+'</div>'+(e.note?'<div class="note">'+esc(e.note)+'</div>':'')+'<div class="links"><button class="howto" data-info="'+e.id+'">How to do it</button><button class="howto alt" data-ask="'+e.id+'" aria-expanded="'+(askId===e.id)+'">Can’t do this</button></div>'+
+             (askId===e.id?'<div class="ask" role="group" aria-label="Why can’t you do it?"><div class="label">Why? It won’t come up again until you restore it.</div><div class="chips">'+Object.keys(WHY).map(k=>'<button class="btn" data-pause="'+e.id+'" data-why="'+k+'">'+WHY[k]+'</button>').join("")+'<button class="btn quiet" data-askcancel="1">Cancel</button></div></div>':'')+'</div>'+
+             '<div class="acts"><button class="icon'+(likes.has(e.id)?' liked':'')+'" data-like="'+e.id+'" aria-pressed="'+likes.has(e.id)+'" aria-label="'+(likes.has(e.id)?'Unlike ':'Like ')+esc(e.n)+'">'+HEART+'</button><button class="icon" data-swap="'+e.id+'" aria-label="Swap '+esc(e.n)+'">'+SWAP+'</button></div></div>';
+        }
+        h+='</section>';
+      }
+      h+='<div class="done-bar"><span class="hint">Drawn '+esc(fmtDay(a.pending.t))+', '+esc(fmtTime(a.pending.t))+'</span><button class="btn primary" id="complete">Mark session done</button></div>';
+    }else{
+      h+='<p class="empty">No session drawn. Exercises you have not done in this cycle come up first.</p>';
+    }
+
+    const st=statsOf(a), got=earnedSet(st), wk=Math.min(st.thisWeek,st.goal);
+    const stat=(n,l)=>'<div class="stat"><div class="sv mono">'+n+'</div><div class="sl">'+l+'</div></div>';
+    h+='<section class="panel" aria-label="Progress"><div class="row" style="justify-content:space-between"><h2>Progress</h2><span class="label">'+got.size+' of '+BADGES.length+' badges</span></div>'+
+      '<div class="prog"><div class="goalring">'+goalRing(wk,st.goal)+'</div><div class="goalinfo"><div class="name">Weekly goal'+(st.thisWeek>=st.goal?' <span class="tag hit">hit</span>':'')+'</div><div class="hint">'+st.thisWeek+' of '+st.goal+' sessions this week</div>'+
+      '<div class="row" style="gap:8px"><span class="stepper"><button data-goal="-1" aria-label="Lower weekly goal">−</button><span class="mono">'+st.goal+'</span><button data-goal="1" aria-label="Raise weekly goal">+</button></span><span class="label">per week</span></div></div></div>'+
+      '<div class="stats">'+stat(st.streak,'week streak')+stat(st.best,'best streak')+stat(st.arrows,'arrows')+stat(st.cyc.S+st.cyc.C,'cycles')+'</div>'+
+      '<details><summary>Badges</summary><ul class="badges">'+BADGES.map(b=>'<li class="'+(got.has(b.id)?'got':'')+'">'+MEDAL+'<div style="min-width:0"><div class="bt">'+esc(b.t)+(got.has(b.id)?'':' <span class="visually-hidden">(locked)</span>')+'</div><div class="bd">'+esc(b.d)+'</div></div></li>').join("")+'</ul></details></section>';
+    const paused=EX.filter(e=>isPaused(a,e.id));
+    if(paused.length){
+      h+='<section class="panel"><div class="row" style="justify-content:space-between"><h2>Paused exercises</h2><span class="mono">'+paused.length+'</span></div><p class="hint" style="margin:0">These stay out of the draw until you restore them. If it is pain, tell your coach or physio. Every two weeks you’ll be asked whether the problem is resolved.</p><ul class="log">'+
+        paused.map(e=>{const b=a.blocked[e.id];return '<li class="prow"><div style="min-width:0;flex:1"><div class="when">'+esc(e.n)+'</div><div style="color:var(--muted)">'+esc(WHY[b.why]||"Paused")+' · since '+esc(fmtDay(b.t))+'</div></div><button class="btn" data-restore="'+e.id+'">Restore</button></li>'}).join("")+'</ul></section>';
+    }
+    const recent=a.log.slice(-6);
+    if(recent.length){
+      h+='<section class="panel"><div class="row" style="justify-content:space-between"><h2>Recent sessions</h2><button class="btn quiet" id="undo">Remove last</button></div>'+
+        (undoConfirm?'<div class="confirm" role="alert"><div>Remove the session from '+esc(fmtDay(recent[recent.length-1].t))+', '+esc(fmtTime(recent[recent.length-1].t))+'? It goes back to the draw unsaved.</div><div class="chips"><button class="btn primary" id="undoyes">Remove it</button><button class="btn quiet" id="undono">Keep it</button></div></div>':'')+
+        '<p class="hint" style="margin:0">'+a.log.length+' session'+(a.log.length===1?'':'s')+' saved in this browser.</p><ul class="log">'+
+        recent.slice().reverse().map(s=>'<li><div class="when">'+esc(fmtDay(s.t))+' · '+esc(fmtTime(s.t))+'</div><div class="m" style="color:var(--muted)">'+s.ids.map(i=>esc(BY[i]?BY[i].n:i)).join(" · ")+'</div></li>').join("")+'</ul></section>';
+    }
+
+    h+='<section class="panel"><details><summary>All exercises and your likes ('+a.likes.length+' liked)</summary><ul class="pool" style="margin-top:8px">'+
+      EX.map(e=>'<li><span class="sw" style="background:var(--'+(e.c==="S"?'shoulder':'core')+')"></span><button class="pn" data-info="'+e.id+'">'+esc(e.n)+(isPaused(a,e.id)?'<span class="tag">paused</span>':'')+'</button><button class="icon'+(likes.has(e.id)?' liked':'')+'" data-like="'+e.id+'" aria-pressed="'+likes.has(e.id)+'" aria-label="'+(likes.has(e.id)?'Unlike ':'Like ')+esc(e.n)+'">'+HEART+'</button></li>').join("")+'</ul></details></section>';
+  }
+
+  h+='<footer><p><b>How the draw works.</b> Shoulder and core each run in a cycle. Every draw takes exercises you have not yet done in the current cycle, and a new cycle starts only after you have completed all of them, however long that takes. Liked exercises come up earlier in the cycle, and one slot in a session can be a liked exercise you have already done (marked “liked repeat”). A session never has more than one exercise with weight on the hands (to protect the wrists), or two versions of the same movement (for example cable and band). The draw avoids two exercises from the same sub-group in one session and avoids repeating your last session. Only sessions you mark done count. With “No equipment” on, the draw uses only bodyweight exercises (floor, wall, chair, a towel or socks instead of sliders) and cycles through those; your full cycle carries on when you switch it off. Tap “How to do it” on any exercise for a description in English or Hebrew. If you can’t do an exercise, tap “Can’t do this”: it is paused and left out of your cycle until you restore it.</p><p><b>Progress.</b> Set a weekly goal; each week you reach it extends your streak. Every exercise you complete counts as one arrow. Badges mark streaks, full cycles and arrow totals.</p><p>Your history is saved in this browser on this device. Use the same phone each time.</p></footer>';
+
+  if(canEditRoster){
+    h+='<section class="panel"><details id="rosterbox"><summary>Squad list (coach)</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px"><label class="label" for="rosteredit">One name per line</label><textarea id="rosteredit" rows="8">'+esc(ROSTER.join("\n"))+'</textarea><div class="row"><button class="btn primary" id="saveroster">Save squad list</button><span class="hint">Publishes the page; everyone sees the new list.</span></div></div></details></section>';
+  }
+  main.innerHTML=h;
+}
+
+/* ---------- Events ---------- */
+let toastT;
+function toast(msg){let t=document.querySelector(".toast");if(!t){t=document.createElement("div");t.className="toast";t.setAttribute("role","status");document.body.appendChild(t)}t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true},2400)}
+function current(){return S.lastArcher&&allNames().includes(S.lastArcher)?A(S.lastArcher):null}
+function doDraw(force){
+  sync(); const a=current(); if(!a)return;
+  if(!force&&a.pending&&a.pending.items&&a.pending.items.length){drawConfirm=true;undoConfirm=false;render();const c=main.querySelector(".confirm [data-complete]");if(c){c.scrollIntoView({block:"nearest"});c.focus()}return}
+  drawConfirm=false; drawSession(a); save(); render();
+  const b=document.getElementById("draw"); if(b){b.classList.add("hit");}
+}
+main.addEventListener("change",e=>{
+  if(e.target.id==="archer"){sync();S.lastArcher=e.target.value;askId=null;drawConfirm=false;undoConfirm=false;save();render();maybeCheck()}
+});
+main.addEventListener("click",e=>{
+  const t=e.target.closest("button"); if(!t)return;
+  sync();
+  const a=current();
+  if(t.id==="draw")return doDraw();
+  if(t.id==="redraw")return doDraw(true);
+  if(t.id==="drawcancel"){drawConfirm=false;render();return}
+  if(t.id==="discard"&&a){a.pending=null;drawConfirm=false;save();render();toast("Discarded");return}
+  if(t.id==="undo"){undoConfirm=true;drawConfirm=false;render();const y=document.getElementById("undoyes");if(y)y.focus();return}
+  if(t.id==="undono"){undoConfirm=false;render();return}
+  if(t.dataset.info)return openInfo(t.dataset.info,t);
+  if(t.dataset.ask){askId=askId===t.dataset.ask?null:t.dataset.ask;render();const f=main.querySelector('[data-pause]');if(f)f.focus();return}
+  if(t.dataset.askcancel){const id=askId;askId=null;render();const b=main.querySelector('[data-ask="'+id+'"]');if(b)b.focus();return}
+  if(t.dataset.pause&&a){const id=t.dataset.pause;askId=null;pauseEx(a,id,t.dataset.why);save();render();toast("Paused: "+BY[id].n);return}
+  if(t.dataset.goal&&a){a.goal=Math.max(MIN_GOAL,Math.min(MAX_GOAL,goalOf(a)+Number(t.dataset.goal)));save();render();return}
+  if(t.id==="noequip"&&a){a.noEquip=!a.noEquip;save();render();const b=document.getElementById("noequip");if(b)b.focus();toast((a.noEquip?"No-equipment mode on":"No-equipment mode off")+(a.pending?". Draw again for a new session":""));return}
+  if(t.dataset.restore&&a){const id=t.dataset.restore;delete a.blocked[id];save();render();toast("Restored: "+BY[id].n);return}
+  if(t.id==="addname"){
+    const inp=document.getElementById("newname"); const v=(inp.value||"").trim().replace(/\s+/g," ");
+    if(!v){inp.focus();return}
+    if(!allNames().includes(v))S.localNames.push(v);
+    S.lastArcher=v; save(); render(); toast("Added "+v+" on this device"); return;
+  }
+  if(t.dataset.step&&a){const c=t.dataset.step;a.n[c]=Math.max(1,Math.min(EX.filter(x=>x.c===c).length,a.n[c]+Number(t.dataset.d)));save();render();return}
+  if(t.dataset.like&&a){const id=t.dataset.like;const i=a.likes.indexOf(id);if(i>=0)a.likes.splice(i,1);else a.likes.push(id);save();
+    const open=document.querySelector("details[open]")!==null; render(); if(open){const d=main.querySelector(".pool");if(d)d.closest("details").open=true}
+    toast(i>=0?"Removed from likes":"Liked: shows up more often");return}
+  if(t.dataset.swap&&a&&a.pending){swapOne(a,t.dataset.swap);save();render();return}
+  if((t.id==="complete"||t.dataset.complete)&&a&&a.pending){
+    const ord=a.pending.items.map((x,i)=>({x,i})).sort((p,q)=>((KIND_ORDER[p.x.kind]??1)-(KIND_ORDER[q.x.kind]??1))||(p.i-q.i));
+    const before=earnedSet(statsOf(a)), cb={S:fullCycle(a,"S"),C:fullCycle(a,"C")}, wkBefore=weekLog(a).length;
+    const entry={t:(t.dataset.when==="drawn"?a.pending.t:Date.now()),ids:ord.map(o=>o.x.id)}; if(a.noEquip)entry.ne=1;
+    a.log.push(entry); a.log.sort((p,q)=>p.t-q.t); drawConfirm=false;
+    const cyc=["S","C"].filter(c=>fullCycle(a,c)>cb[c]); if(cyc.length)entry.cyc=cyc;
+    const st=statsOf(a), fresh=BADGES.filter(b=>b.ok(st)&&!before.has(b.id));
+    a.pending=null; save(); render();
+    const b=document.getElementById("draw"); if(b)b.classList.add("hit");
+    const goalNow=wkBefore<st.goal&&st.thisWeek>=st.goal;
+    const line="+"+entry.ids.length+" arrows · "+st.thisWeek+"/"+st.goal+" this week"+(goalNow?" · weekly goal hit":"")+(cyc.length?" · "+cyc.map(c=>CAT[c].label.toLowerCase()).join(" and ")+" cycle complete":"");
+    if(fresh.length)showBadges(fresh,line); else toast(line); return;
+  }
+  if(t.id==="undoyes"&&a){undoConfirm=false;if(!a.log.length){render();return}const last=a.log.pop();const st={S:cycleState(a,"S").done,C:cycleState(a,"C").done};const lk=new Set(a.likes);a.pending={t:Date.now(),items:last.ids.filter(id=>BY[id]).map(id=>({id,kind:st[BY[id].c].has(id)?(lk.has(id)?"liked":"next"):"cycle"}))};save();render();toast("Session removed and moved back to the draw");return}
+  if(t.id==="saveroster")return saveRoster();
+});
+document.addEventListener("keydown",e=>{
+  if(!sheet.hidden){if(e.key==="Escape")closeInfo();return}
+  if(e.repeat||e.metaKey||e.ctrlKey||e.altKey)return;
+  const tag=(e.target&&e.target.tagName)||"";
+  if(/INPUT|TEXTAREA|SELECT|BUTTON|SUMMARY/.test(tag))return;
+  if(e.code==="Space"||e.key==="Enter"){e.preventDefault();doDraw()}
+});
+
+/* ---------- Exercise description sheet (English or Hebrew, choice remembered on this device) ---------- */
+const LBL={en:{s:"Setup",m:"Movement",c:"Key points",x:"Avoid",close:"Close"},he:{s:"מנח התחלה",m:"ביצוע",c:"דגשים",x:"להימנע",close:"סגירה"}};
+const sheet=document.createElement("div");sheet.className="sheet";sheet.hidden=true;document.body.appendChild(sheet);
+let infoId=null, infoOpener=null;
+function renderInfo(){
+  const e=BY[infoId], d=DESC[infoId]; if(!e||!d)return;
+  const lang=S.lang==="he"?"he":"en", L=LBL[lang], t=d[lang];
+  const title=lang==="he"?t.n:e.n;
+  const meta=lang==="en"?'<div style="color:var(--muted);font-size:.86rem">'+esc(e.eq)+' · '+esc(e.pos)+' · '+esc(e.lat)+'</div>':'';
+  sheet.innerHTML='<div class="box '+e.c+'" role="dialog" aria-modal="true" aria-labelledby="sheet-title">'+
+    '<div class="bar"><div class="seg" role="group" aria-label="Language"><button data-lang="en" lang="en" aria-pressed="'+(lang==="en")+'">English</button><button data-lang="he" lang="he" aria-pressed="'+(lang==="he")+'">עברית</button></div>'+
+    '<button class="btn" id="sheet-close" lang="'+lang+'">'+L.close+'</button></div>'+
+    '<div lang="'+lang+'" dir="'+(lang==="he"?"rtl":"ltr")+'" class="'+(lang==="he"?"he":"")+'" style="display:flex;flex-direction:column;gap:12px">'+
+    '<div><h3 id="sheet-title">'+esc(title)+'</h3>'+meta+'</div>'+
+    '<dl>'+["s","m","c","x"].map(k=>'<div><dt>'+L[k]+'</dt><dd>'+esc(t[k])+'</dd></div>').join("")+'</dl></div></div>';
+}
+function openInfo(id,opener){
+  if(!DESC[id])return; infoId=id; infoOpener=opener||null;
+  renderInfo(); sheet.hidden=false; document.body.style.overflow="hidden";
+  const c=document.getElementById("sheet-close"); if(c)c.focus();
+}
+function closeInfo(){
+  sheet.hidden=true; sheet.innerHTML=""; document.body.style.overflow=""; checkArcher=null;
+  const id=infoId; infoId=null;
+  const back=main.querySelector('[data-info="'+id+'"]')||infoOpener; if(back&&back.focus)back.focus();
+}
+/* Paused exercises: every 14 days the archer is asked whether the issue is resolved. */
+const RECHECK_DAYS=14;
+function dueChecks(a){const now=Date.now();return EX.filter(e=>{const b=a.blocked&&a.blocked[e.id];return b&&now-(b.asked||b.t)>=RECHECK_DAYS*864e5})}
+let checkArcher=null;
+function renderCheck(){
+  const a=checkArcher?A(checkArcher):null; const due=a?dueChecks(a):[];
+  if(!due.length){closeInfo();render();return}
+  sheet.innerHTML='<div class="box" role="dialog" aria-modal="true" aria-labelledby="check-title"><div class="bar"><h3 id="check-title">Still can’t do these?</h3><button class="btn quiet" id="check-later">Ask me later</button></div>'+
+    '<p class="hint" style="margin:0">You paused these more than two weeks ago. If the problem is gone, put the exercise back in your rotation.</p><ul class="log">'+
+    due.map(e=>{const b=a.blocked[e.id];return '<li><div class="when">'+esc(e.n)+'</div><div style="color:var(--muted);font-size:.86rem">'+esc(WHY[b.why]||"Paused")+' · paused '+esc(fmtDay(b.t))+'</div><div class="chips" style="margin-top:8px"><button class="btn primary" data-resolve="'+e.id+'">Resolved, restore it</button><button class="btn" data-still="'+e.id+'">Still a problem</button></div></li>'}).join("")+'</ul></div>';
+}
+function maybeCheck(){
+  const a=current(); if(!a||!sheet.hidden)return; if(!dueChecks(a).length)return;
+  checkArcher=S.lastArcher; infoId=null; infoOpener=null;
+  renderCheck(); sheet.hidden=false; document.body.style.overflow="hidden";
+  const f=sheet.querySelector("[data-resolve]"); if(f)f.focus();
+}
+function showBadges(list,line){
+  infoId=null; infoOpener=null; checkArcher=null;
+  sheet.innerHTML='<div class="box" role="dialog" aria-modal="true" aria-labelledby="badge-title"><div class="bar"><h3 id="badge-title">'+(list.length>1?'New badges':'New badge')+'</h3><button class="btn primary" id="sheet-close">Nice</button></div>'+
+    '<p class="hint" style="margin:0">Session saved. '+esc(line)+'</p><ul class="badges big">'+list.map(b=>'<li class="got">'+MEDAL+'<div><div class="bt">'+esc(b.t)+'</div><div class="bd">'+esc(b.d)+'</div></div></li>').join("")+'</ul></div>';
+  sheet.hidden=false; document.body.style.overflow="hidden";
+  const c=document.getElementById("sheet-close"); if(c)c.focus();
+}
+sheet.addEventListener("click",e=>{
+  if(e.target===sheet)return closeInfo();
+  const b=e.target.closest("button"); if(!b)return;
+  sync();
+  if(b.id==="check-later")return closeInfo();
+  if(b.dataset.resolve&&checkArcher){const a=A(checkArcher);delete a.blocked[b.dataset.resolve];save();toast("Restored: "+BY[b.dataset.resolve].n);renderCheck();const f=sheet.querySelector("[data-resolve]");if(f)f.focus();return}
+  if(b.dataset.still&&checkArcher){const a=A(checkArcher);if(a.blocked[b.dataset.still])a.blocked[b.dataset.still].asked=Date.now();save();renderCheck();const f=sheet.querySelector("[data-resolve]");if(f)f.focus();return}
+  if(b.id==="sheet-close")return closeInfo();
+  if(b.dataset.lang){S.lang=b.dataset.lang;save();renderInfo();const nb=sheet.querySelector('[data-lang="'+S.lang+'"]');if(nb)nb.focus()}
+});
+
+/* ---------- Coach: squad list, republished with the page ---------- */
+function buildDoc(names){
+  const reset=(document.head.querySelector("style")||{}).textContent||"";
+  const q=s=>document.querySelector(s);
+  const close="<"+"/script>";
+  const json=JSON.stringify(names).replace(/</g,"\\u003c");
+  const shell='<div id="app" class="wrap">\n  <header>\n    <div class="label">National team · Shoulder health &amp; core</div>\n    <h1>Rehab Draw</h1>\n    <p class="lede">Pick your name, hit the target, do the exercises. The draw works through the whole list in rotation and favours the ones you like.</p>\n  </header>\n  <noscript><p class="notice">This page needs JavaScript to draw exercises.</p></noscript>\n</div>';
+  return '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>'+reset+'</style></head><body>'+
+    '<title>Archery Rehab Draw</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n'+
+    q('link[href*="fonts.googleapis"]').outerHTML+'\n<style>'+q('body style').textContent+'</style>\n\n'+shell+'\n\n'+
+    '<script type="application/json" id="roster-data">'+json+close+'\n\n<script id="main">'+document.getElementById("main").textContent+close+'\n</body></html>';
+}
+async function saveRoster(){
+  const ta=document.getElementById("rosteredit"); if(!ta||!artifactNS)return;
+  const names=[...new Set(ta.value.split("\n").map(s=>s.trim().replace(/\s+/g," ")).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const btn=document.getElementById("saveroster"); btn.disabled=true; btn.textContent="Saving…";
+  try{await artifactNS.publish(buildDoc(names))}
+  catch(err){
+    const c=err&&err.code;
+    if(c==="conflict"){return}
+    if(c==="not_writer"||c==="not_granted"){canEditRoster=false;render();toast("Only the coach can change the squad list");return}
+    btn.disabled=false;btn.textContent="Save squad list";toast("Could not save the squad list. Try again in a moment.");
+  }
+}
+
+window.addEventListener("storage",e=>{if(e.key===KEY||e.key===null){sync();render()}});
+window.addEventListener("pageshow",e=>{if(e.persisted){sync();render()}});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){sync();render()}});
+render();
+maybeCheck();
+(async()=>{
+  try{
+    if(!window.claude||!window.claude.use)return;
+    const [art,usr]=await Promise.all([window.claude.use("artifact"),window.claude.use("user")]);
+    artifactNS=art;
+    const can=usr?await usr.canEdit():false;
+    if(art&&can){canEditRoster=true;render()}
+  }catch(e){}
+})();
+})();
+</script>
+
+<script>
+/* Offline support: keeps a copy of the page so it opens without a connection once loaded. */
+if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}
+</script>
+</body>
+</html>
